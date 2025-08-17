@@ -6,8 +6,8 @@ import PreloadScene from "./scenes/PreloadScene";
 const config = {
   type: Phaser.AUTO,
   parent: "phaser-game",
-  width: 720, // base width
-  height: 1280, // base height
+  width: 720/2, // base width
+  height: 1280/2, // base height
   backgroundColor: "#87CEEB",
   physics: {
     default: "arcade",

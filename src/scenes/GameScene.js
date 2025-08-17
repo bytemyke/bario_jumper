@@ -19,10 +19,18 @@ export default class GameScene extends Phaser.Scene {
     console.log(tileset);
     // Add a layer (name must match the layer name in Tiled)
     // const backgroundLayer = map.createLayer("Background", tileset, 0, 0);
+    const ground = map.createLayer("ground", tileset, 0, 0); 
+    console.log(ground);
+    //this.physics.add.collider(this.player, ground);
+    ground.setCollisionByProperty({ collides: true });
+    const leftWall = map.createLayer("leftWall", tileset, 0, 0);
+    console.log(leftWall);
 
+    const rightWall = map.createLayer("rightWall", tileset, 0, 0);
+    console.log(rightWall);
     // Optionally a collision layer
-    const wallLayer = map.createLayer("boundary", tileset, 0, 0);
-    console.log(wallLayer);
+    const background = map.createLayer("background", tileset, 0, 0);
+    console.log(background);
     // wallLayer.setCollisionByProperty({ collides: true });
 
     // // // Example: collide the player with the tilemap ground
