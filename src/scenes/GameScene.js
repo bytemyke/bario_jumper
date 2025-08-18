@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import Platform from "../sprites/Platform";
 import Enemy from "../sprites/Enemy";
+import Player from "../sprites/Player";
 import { createMap } from "../functions/createMap";
 export default class GameScene extends Phaser.Scene {
   constructor() {
@@ -23,13 +24,8 @@ export default class GameScene extends Phaser.Scene {
       })
       .setScrollFactor(0);
 
-    // Player starts centered near the bottom
-    this.player = this.physics.add.sprite(
-      gameWidth / 2,
-      gameHeight * 0.75,
-      "player"
-    );
-    this.player.setCollideWorldBounds(true);
+    this.player = new Player(this, gameWidth / 2, gameHeight * 0.75);
+
     this.cursors = this.input.keyboard.addKeys("W,A,S,D");
 
     // Platforms scaled to screen height
@@ -82,22 +78,7 @@ export default class GameScene extends Phaser.Scene {
   }
 
   update() {
-    const gameHeight = this.sys.game.config.height;
-
-    // Movement
-    if (this.cursors.A.isDown) {
-      this.player.setVelocityX(-200);
-    } else if (this.cursors.D.isDown) {
-      this.player.setVelocityX(200);
-    } else {
-      this.player.setVelocityX(0);
-    }
-
-    // Jump
-    if (this.cursors.W.isDown && this.player.body.blocked.down) {
-      this.player.setVelocityY(-500);
-    }
-
+    this.player.update();
     // Compute where we'd like the camera if it were allowed to move both ways
     const target = this.player.y - this.followOffsetY;
 
