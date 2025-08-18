@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import Platform from "../sprites/Platform";
 import Enemy from "../sprites/Enemy";
-
+import { createMap } from "../functions/createMap";
 export default class GameScene extends Phaser.Scene {
   constructor() {
     super("GameScene");
@@ -10,31 +10,6 @@ export default class GameScene extends Phaser.Scene {
 
   create() {
     console.log("GameScene");
-
-    // Create the tilemap
-    const map = this.make.tilemap({ key: "tilemap" });
-
-    // Match the name of the tileset in Tiled (first argument) to the image you preloaded
-    const tileset = map.addTilesetImage("Ground-and-Ceiling", "gandcTiles");
-    console.log(tileset);
-    // Add a layer (name must match the layer name in Tiled)
-    // const backgroundLayer = map.createLayer("Background", tileset, 0, 0);
-    const ground = map.createLayer("ground", tileset, 0, 0); 
-    console.log(ground);
-    //this.physics.add.collider(this.player, ground);
-    ground.setCollisionByProperty({ collides: true });
-    const leftWall = map.createLayer("leftWall", tileset, 0, 0);
-    console.log(leftWall);
-
-    const rightWall = map.createLayer("rightWall", tileset, 0, 0);
-    console.log(rightWall);
-    // Optionally a collision layer
-    const background = map.createLayer("background", tileset, 0, 0);
-    console.log(background);
-    // wallLayer.setCollisionByProperty({ collides: true });
-
-    // // // Example: collide the player with the tilemap ground
-    // this.physics.add.collider(this.player, wallLayer);
 
     this.score = 0;
 
@@ -55,7 +30,6 @@ export default class GameScene extends Phaser.Scene {
       "player"
     );
     this.player.setCollideWorldBounds(true);
-
     this.cursors = this.input.keyboard.addKeys("W,A,S,D");
 
     // Platforms scaled to screen height
@@ -86,10 +60,25 @@ export default class GameScene extends Phaser.Scene {
       this
     );
 
-    // Camera follows only Y
-    this.cameras.main.startFollow(this.player, false, 0, 1);
-    this.cameras.main.setLerp(0, 1);
-    this.cameras.main.setBounds(0, 0, gameWidth, Number.MAX_SAFE_INTEGER);
+    // Let the world extend far ABOVE 0 so the camera can go up
+    const SKY = 100000; // big number
+    this.cameras.main.setBounds(
+      0,
+      -SKY,
+      gameWidth,
+      SKY + Number.MAX_SAFE_INTEGER
+    );
+
+    // Keep player roughly mid-screen
+    this.followOffsetY = gameHeight * 0.5;
+
+    // Initialize camera position and the “never-go-down” tracker
+    this.cameras.main.scrollY = this.player.y - this.followOffsetY;
+    this.minScrollY = this.cameras.main.scrollY; // the smallest (highest) scrollY we’ve hit
+
+    this.highestCameraY = this.cameras.main.scrollY;
+
+    this.map = createMap(this, this.player);
   }
 
   update() {
@@ -109,10 +98,14 @@ export default class GameScene extends Phaser.Scene {
       this.player.setVelocityY(-500);
     }
 
-    // Game over if player falls below the screen
-    if (this.player.y > this.cameras.main.scrollY + gameHeight) {
-      this.scene.start("GameOverScene", { score: this.score });
+    // Compute where we'd like the camera if it were allowed to move both ways
+    const target = this.player.y - this.followOffsetY;
+
+    // Only allow the camera to move UP (remember: smaller scrollY = higher)
+    if (target < this.minScrollY) {
+      this.minScrollY = target;
     }
+    this.cameras.main.scrollY = this.minScrollY; // never increases
   }
 
   collectCoin(player, coin) {
