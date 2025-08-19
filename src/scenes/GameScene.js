@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import Platform from "../sprites/Platform";
 import Enemy from "../sprites/Enemy";
+import spawnPlatforms from '../functions/spawnPlatforms';
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
@@ -10,47 +11,35 @@ export default class GameScene extends Phaser.Scene {
 
   create() {
     console.log("GameScene");
+    const gameWidth = this.sys.game.config.width;
+    const gameHeight = this.sys.game.config.height;
 
     // Create the tilemap
     const map = this.make.tilemap({ key: "tilemap" });
-
-    // Match the name of the tileset in Tiled (first argument) to the image you preloaded
     const tileset = map.addTilesetImage("Ground-and-Ceiling", "gandcTiles");
-    console.log(tileset);
-    // Add a layer (name must match the layer name in Tiled)
-    // const backgroundLayer = map.createLayer("Background", tileset, 0, 0);
-    const ground = map.createLayer("ground", tileset, 0, 0); 
-    console.log(ground);
-    //ground.setCollisionByProperty({ collides: true });
-    const leftWall = map.createLayer("leftWall", tileset, 0, 0);
-    console.log(leftWall);
 
+    // Create layers
+    const ground = map.createLayer("ground", tileset, 0, 0);
+    const leftWall = map.createLayer("leftWall", tileset, 0, 0);
     const rightWall = map.createLayer("rightWall", tileset, 0, 0);
-    console.log(rightWall);
-    // Optionally a collision layer
     const background = map.createLayer("background", tileset, 0, 0);
-    console.log(background);
-    // wallLayer.setCollisionByProperty({ collides: true });
+
+    // Set depths
     background.setDepth(0);
     ground.setDepth(1);
     leftWall.setDepth(1);
     rightWall.setDepth(1);
-    // // // Example: collide the player with the tilemap ground
-    // this.physics.add.collider(this.player, wallLayer);
 
-    this.score = 0;
+    // Set scroll factors
+    background.setScrollFactor(0);
+    ground.setScrollFactor(0);
+    leftWall.setScrollFactor(0);
+    rightWall.setScrollFactor(0);
 
-    const gameWidth = this.sys.game.config.width;
-    const gameHeight = this.sys.game.config.height;
-
-    this.scoreText = this.add
-      .text(10, 10, "Score: 0", {
-        fontSize: "24px",
-        fill: "#000",
-      })
-      .setScrollFactor(0);
-
-    // Player starts centered near the bottom
+    // Initialize platforms
+    this.platforms = this.physics.add.staticGroup();
+    
+    // Create player
     this.player = this.physics.add.sprite(
       gameWidth / 2,
       gameHeight * 0.75,
@@ -58,20 +47,15 @@ export default class GameScene extends Phaser.Scene {
     );
     this.player.setCollideWorldBounds(true);
 
+    this.physics.add.collider(this.player, this.platforms);
+    // Setup controls
     this.cursors = this.input.keyboard.addKeys("W,A,S,D");
 
-    // Platforms scaled to screen height
-    this.platforms = this.physics.add.staticGroup();
-    const platformCount = 6;
-    const spacing = gameHeight / (platformCount + 1);
-
-    for (let i = 0; i < platformCount; i++) {
-      new Platform(this, gameWidth / 2, gameHeight - i * spacing);
-    }
-
+    // Initialize groups
     this.coins = this.physics.add.group();
     this.enemies = this.physics.add.group();
 
+    // Add colliders
     this.physics.add.collider(this.player, this.platforms);
     this.physics.add.overlap(
       this.player,
@@ -88,9 +72,18 @@ export default class GameScene extends Phaser.Scene {
       this
     );
 
-    // Camera follows only Y
+    // Setup score text
+    this.scoreText = this.add
+      .text(10, 10, "Score: 0", {
+        fontSize: "24px",
+        fill: "#000",
+      })
+      .setScrollFactor(0);
+
+    // Camera settings
     this.cameras.main.startFollow(this.player, false, 0, 1);
-    this.cameras.main.setLerp(0, 1);
+    this.cameras.main.setLerp(0, 0.1);
+    this.cameras.main.setDeadzone(0, gameHeight * 0.7);
     this.cameras.main.setBounds(0, 0, gameWidth, Number.MAX_SAFE_INTEGER);
   }
 
@@ -115,6 +108,9 @@ export default class GameScene extends Phaser.Scene {
     if (this.player.y > this.cameras.main.scrollY + gameHeight) {
       this.scene.start("GameOverScene", { score: this.score });
     }
+
+    // Spawn platforms
+    spawnPlatforms(this, this.player);
   }
 
   collectCoin(player, coin) {
