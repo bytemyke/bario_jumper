@@ -1,8 +1,7 @@
 import Phaser from "phaser";
 import Platform from "../sprites/Platform";
 import Enemy from "../sprites/Enemy";
-import Player from "../sprites/Player";
-import { createMap } from "../functions/createMap";
+
 export default class GameScene extends Phaser.Scene {
   constructor() {
     super("GameScene");
@@ -11,6 +10,33 @@ export default class GameScene extends Phaser.Scene {
 
   create() {
     console.log("GameScene");
+
+    // Create the tilemap
+    const map = this.make.tilemap({ key: "tilemap" });
+
+    // Match the name of the tileset in Tiled (first argument) to the image you preloaded
+    const tileset = map.addTilesetImage("Ground-and-Ceiling", "gandcTiles");
+    console.log(tileset);
+    // Add a layer (name must match the layer name in Tiled)
+    // const backgroundLayer = map.createLayer("Background", tileset, 0, 0);
+    const ground = map.createLayer("ground", tileset, 0, 0); 
+    console.log(ground);
+    //ground.setCollisionByProperty({ collides: true });
+    const leftWall = map.createLayer("leftWall", tileset, 0, 0);
+    console.log(leftWall);
+
+    const rightWall = map.createLayer("rightWall", tileset, 0, 0);
+    console.log(rightWall);
+    // Optionally a collision layer
+    const background = map.createLayer("background", tileset, 0, 0);
+    console.log(background);
+    // wallLayer.setCollisionByProperty({ collides: true });
+    background.setDepth(0);
+    ground.setDepth(1);
+    leftWall.setDepth(1);
+    rightWall.setDepth(1);
+    // // // Example: collide the player with the tilemap ground
+    // this.physics.add.collider(this.player, wallLayer);
 
     this.score = 0;
 
@@ -24,7 +50,13 @@ export default class GameScene extends Phaser.Scene {
       })
       .setScrollFactor(0);
 
-    this.player = new Player(this, gameWidth / 2, gameHeight * 0.75);
+    // Player starts centered near the bottom
+    this.player = this.physics.add.sprite(
+      gameWidth / 2,
+      gameHeight * 0.75,
+      "player"
+    );
+    this.player.setCollideWorldBounds(true);
 
     this.cursors = this.input.keyboard.addKeys("W,A,S,D");
 
@@ -56,37 +88,33 @@ export default class GameScene extends Phaser.Scene {
       this
     );
 
-    // Let the world extend far ABOVE 0 so the camera can go up
-    const SKY = 100000; // big number
-    this.cameras.main.setBounds(
-      0,
-      -SKY,
-      gameWidth,
-      SKY + Number.MAX_SAFE_INTEGER
-    );
-
-    // Keep player roughly mid-screen
-    this.followOffsetY = gameHeight * 0.5;
-
-    // Initialize camera position and the “never-go-down” tracker
-    this.cameras.main.scrollY = this.player.y - this.followOffsetY;
-    this.minScrollY = this.cameras.main.scrollY; // the smallest (highest) scrollY we’ve hit
-
-    this.highestCameraY = this.cameras.main.scrollY;
-
-    this.map = createMap(this, this.player);
+    // Camera follows only Y
+    this.cameras.main.startFollow(this.player, false, 0, 1);
+    this.cameras.main.setLerp(0, 1);
+    this.cameras.main.setBounds(0, 0, gameWidth, Number.MAX_SAFE_INTEGER);
   }
 
   update() {
-    this.player.update();
-    // Compute where we'd like the camera if it were allowed to move both ways
-    const target = this.player.y - this.followOffsetY;
+    const gameHeight = this.sys.game.config.height;
 
-    // Only allow the camera to move UP (remember: smaller scrollY = higher)
-    if (target < this.minScrollY) {
-      this.minScrollY = target;
+    // Movement
+    if (this.cursors.A.isDown) {
+      this.player.setVelocityX(-200);
+    } else if (this.cursors.D.isDown) {
+      this.player.setVelocityX(200);
+    } else {
+      this.player.setVelocityX(0);
     }
-    this.cameras.main.scrollY = this.minScrollY; // never increases
+
+    // Jump
+    if (this.cursors.W.isDown && this.player.body.blocked.down) {
+      this.player.setVelocityY(-500);
+    }
+
+    // Game over if player falls below the screen
+    if (this.player.y > this.cameras.main.scrollY + gameHeight) {
+      this.scene.start("GameOverScene", { score: this.score });
+    }
   }
 
   collectCoin(player, coin) {
