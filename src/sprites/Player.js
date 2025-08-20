@@ -22,6 +22,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
     // Start idle
     this.anims.play("idle");
+    this.setDepth(1);
   }
   changeMode(mode) {
     //modeOptions = ["mini", "big", "fire"];
