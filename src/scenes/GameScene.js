@@ -28,14 +28,6 @@ export default class GameScene extends Phaser.Scene {
 
     this.cursors = this.input.keyboard.addKeys("W,A,S,D");
 
-    // Platforms scaled to screen height
-    this.platforms = this.physics.add.staticGroup();
-    const platformCount = 6;
-    const spacing = gameHeight / (platformCount + 1);
-
-    for (let i = 0; i < platformCount; i++) {
-      new Platform(this, gameWidth / 2, gameHeight - i * spacing);
-    }
 
     this.coins = this.physics.add.group();
     this.enemies = this.physics.add.group();

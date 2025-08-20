@@ -14,6 +14,7 @@ export function createMap(scene, player){
     setCollisions(leftWall, player,scene);
     setCollisions(rightWall, player,scene);
     background.setDepth(0);
+    background.setAlpha(.75);
     ground.setDepth(1);
     leftWall.setDepth(1);
     rightWall.setDepth(1)

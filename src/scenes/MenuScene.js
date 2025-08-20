@@ -7,7 +7,7 @@ export default class MenuScene extends Phaser.Scene {
 
   create() {
     this.add
-      .text(200, 250, "DOODLE CLONE", {
+      .text(200, 250, "Bario Jumper", {
         fontSize: "28px",
         color: "#000",
       })

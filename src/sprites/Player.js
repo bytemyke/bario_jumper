@@ -9,7 +9,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this);
     scene.physics.add.existing(this);
 
-    this.setCollideWorldBounds(true);
+    // this.setCollideWorldBounds(true);
 
     this.moveSpeed = 200;
     this.jumpSpeed = -500;
