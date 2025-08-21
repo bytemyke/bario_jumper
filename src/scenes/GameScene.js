@@ -2,23 +2,23 @@ import Phaser from "phaser";
 import Platform from "../sprites/Platform";
 import Enemy from "../sprites/Enemy";
 import Player from "../sprites/Player";
+import {spawnPlatforms, initializePlatforms}  from "../functions/spawnPlatforms"; 
 import { createMap } from "../functions/createMap";
 export default class GameScene extends Phaser.Scene {
   constructor() {
     super("GameScene");
     this.score = 0;
   }
-
+ 
   create() {
-this.anims.create({
+    
+    this.anims.create({
   key: "coinSpin",
   frames: this.anims.generateFrameNumbers("coin", { start: 0, end: 19 }),
   frameRate: 10,
   repeat: -1
 });
     console.log("GameScene");
-    const gameWidth = this.sys.game.config.width;
-    const gameHeight = this.sys.game.config.height;
 
     this.score = 0;
 
@@ -34,15 +34,13 @@ this.anims.create({
 
     this.player = new Player(this, gameWidth / 2, gameHeight * 0.75);
 
-    this.physics.add.collider(this.player, this.platforms);
-    // Setup controls
     this.cursors = this.input.keyboard.addKeys("W,A,S,D");
 
     this.coins = this.physics.add.group();
     this.enemies = this.physics.add.group();
 
-    // Add colliders
-    this.physics.add.collider(this.player, this.platforms);
+
+  
     this.physics.add.overlap(
       this.player,
       this.coins,
@@ -77,6 +75,7 @@ this.anims.create({
     this.highestCameraY = this.cameras.main.scrollY;
 
     this.map = createMap(this, this.player);
+    initializePlatforms(this, this.player);
     // setInterval(() => this.spawnCoin(), 1000);
   }
 
@@ -84,7 +83,8 @@ this.anims.create({
     this.player.update();
     // Compute where we'd like the camera if it were allowed to move both ways
     const target = this.player.y - this.followOffsetY;
-
+    console.log(this.platforms);
+    spawnPlatforms(this, this.player);
     // Only allow the camera to move UP (remember: smaller scrollY = higher)
     if (target < this.minScrollY) {
       this.minScrollY = target;

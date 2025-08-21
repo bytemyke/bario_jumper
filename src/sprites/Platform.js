@@ -1,21 +1,17 @@
 import Phaser from "phaser";
 
-export default class Platform extends Phaser.Physics.Arcade.StaticGroup {
-    constructor(scene, x, y, type = 'basic') {
-        super(scene.physics.world, scene);
-        
-        this.type = type;
-        this.width = 3;
-        
-        // Create platform blocks
-        for (let i = 0; i < this.width; i++) {
-            // Use create instead of add for static bodies
-            const block = this.create(x + (i * 16), y, 'platform', 462);
-            block.setImmovable(true);
-            block.refreshBody(); // Ensure physics body is updated
-            block.setScrollFactor(1);
-        }
+export default class Platform extends Phaser.Physics.Arcade.Sprite {
+  constructor(scene, x, y, texture = "castle_platform") {
+    super(scene, x, y, texture);
 
-        // No need to manually add to scene.platforms as StaticGroup handles this
-    }
+    // Add to scene & physics world
+    scene.add.existing(this);
+    scene.physics.add.existing(this, true); // true = static body
+
+    // Optional: tweak origin/scale
+    this.setOrigin(0.5, 0.5);
+
+    // Add to the scene's platforms group
+    scene.platforms.add(this);
+  }
 }
