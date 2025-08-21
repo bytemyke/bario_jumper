@@ -1,8 +1,8 @@
 import Phaser from "phaser";
 import Platform from "../sprites/Platform";
 import Enemy from "../sprites/Enemy";
-import spawnPlatforms from '../functions/spawnPlatforms';
-
+import Player from "../sprites/Player";
+import { createMap } from "../functions/createMap";
 export default class GameScene extends Phaser.Scene {
   constructor() {
     super("GameScene");
@@ -10,48 +10,34 @@ export default class GameScene extends Phaser.Scene {
   }
 
   create() {
+this.anims.create({
+  key: "coinSpin",
+  frames: this.anims.generateFrameNumbers("coin", { start: 0, end: 19 }),
+  frameRate: 10,
+  repeat: -1
+});
     console.log("GameScene");
     const gameWidth = this.sys.game.config.width;
     const gameHeight = this.sys.game.config.height;
 
-    // Create the tilemap
-    const map = this.make.tilemap({ key: "tilemap" });
-    const tileset = map.addTilesetImage("Ground-and-Ceiling", "gandcTiles");
+    this.score = 0;
 
-    // Create layers
-    const ground = map.createLayer("ground", tileset, 0, 0);
-    const leftWall = map.createLayer("leftWall", tileset, 0, 0);
-    const rightWall = map.createLayer("rightWall", tileset, 0, 0);
-    const background = map.createLayer("background", tileset, 0, 0);
+    const gameWidth = this.sys.game.config.width;
+    const gameHeight = this.sys.game.config.height;
 
-    // Set depths
-    background.setDepth(0);
-    ground.setDepth(1);
-    leftWall.setDepth(1);
-    rightWall.setDepth(1);
+    this.scoreText = this.add
+      .text(10, 10, "Score: 0", {
+        fontSize: "24px",
+        fill: "#000",
+      })
+      .setScrollFactor(0);
 
-    // Set scroll factors
-    background.setScrollFactor(0);
-    ground.setScrollFactor(0);
-    leftWall.setScrollFactor(0);
-    rightWall.setScrollFactor(0);
-
-    // Initialize platforms
-    this.platforms = this.physics.add.staticGroup();
-    
-    // Create player
-    this.player = this.physics.add.sprite(
-      gameWidth / 2,
-      gameHeight * 0.75,
-      "player"
-    );
-    this.player.setCollideWorldBounds(true);
+    this.player = new Player(this, gameWidth / 2, gameHeight * 0.75);
 
     this.physics.add.collider(this.player, this.platforms);
     // Setup controls
     this.cursors = this.input.keyboard.addKeys("W,A,S,D");
 
-    // Initialize groups
     this.coins = this.physics.add.group();
     this.enemies = this.physics.add.group();
 
@@ -72,45 +58,38 @@ export default class GameScene extends Phaser.Scene {
       this
     );
 
-    // Setup score text
-    this.scoreText = this.add
-      .text(10, 10, "Score: 0", {
-        fontSize: "24px",
-        fill: "#000",
-      })
-      .setScrollFactor(0);
+    // Let the world extend far ABOVE 0 so the camera can go up
+    const SKY = 100000; // big number
+    this.cameras.main.setBounds(
+      0,
+      -SKY,
+      gameWidth,
+      SKY + Number.MAX_SAFE_INTEGER
+    );
 
-    // Camera settings
-    this.cameras.main.startFollow(this.player, false, 0, 1);
-    this.cameras.main.setLerp(0, 0.1);
-    this.cameras.main.setDeadzone(0, gameHeight * 0.7);
-    this.cameras.main.setBounds(0, 0, gameWidth, Number.MAX_SAFE_INTEGER);
+    // Keep player roughly mid-screen
+    this.followOffsetY = gameHeight * 0.5;
+
+    // Initialize camera position and the “never-go-down” tracker
+    this.cameras.main.scrollY = this.player.y - this.followOffsetY;
+    this.minScrollY = this.cameras.main.scrollY; // the smallest (highest) scrollY we’ve hit
+
+    this.highestCameraY = this.cameras.main.scrollY;
+
+    this.map = createMap(this, this.player);
+    // setInterval(() => this.spawnCoin(), 1000);
   }
 
   update() {
-    const gameHeight = this.sys.game.config.height;
+    this.player.update();
+    // Compute where we'd like the camera if it were allowed to move both ways
+    const target = this.player.y - this.followOffsetY;
 
-    // Movement
-    if (this.cursors.A.isDown) {
-      this.player.setVelocityX(-200);
-    } else if (this.cursors.D.isDown) {
-      this.player.setVelocityX(200);
-    } else {
-      this.player.setVelocityX(0);
+    // Only allow the camera to move UP (remember: smaller scrollY = higher)
+    if (target < this.minScrollY) {
+      this.minScrollY = target;
     }
-
-    // Jump
-    if (this.cursors.W.isDown && this.player.body.blocked.down) {
-      this.player.setVelocityY(-500);
-    }
-
-    // Game over if player falls below the screen
-    if (this.player.y > this.cameras.main.scrollY + gameHeight) {
-      this.scene.start("GameOverScene", { score: this.score });
-    }
-
-    // Spawn platforms
-    spawnPlatforms(this, this.player);
+    this.cameras.main.scrollY = this.minScrollY; // never increases
   }
 
   collectCoin(player, coin) {
@@ -124,10 +103,19 @@ export default class GameScene extends Phaser.Scene {
   }
 
   spawnCoin() {
-    const gameWidth = this.sys.game.config.width;
-    const x = Phaser.Math.Between(50, gameWidth - 50);
-    const y = this.cameras.main.scrollY - 50;
-    this.coins.create(x, y, "coin").setScale(0.1);
+  const gameWidth = this.sys.game.config.width;
+  const x = Phaser.Math.Between(50, gameWidth - 50);
+
+  // Spawn just above the player
+  const y = this.player.y - 100;
+
+  const coin = this.coins.create(x, y, "coin", 0).setDepth(10).setScale(0.1);
+coin.play("coinSpin");
+coin.body.setAllowGravity(false);
+  console.log(coin.x, coin.y);
+  console.log("coin size:", coin.body.width, coin.body.height);
+  console.log("player size:", this.player.body.width, this.player.body.height);
+  console.log("spawned coin at", x, y, "playerY", this.player.y, "cameraY", this.cameras.main.scrollY);
   }
 
   spawnEnemy() {

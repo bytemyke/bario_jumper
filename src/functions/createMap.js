@@ -9,11 +9,15 @@ export function createMap(scene, player){
     const leftWall = map.createLayer("leftWall", tileset, 0, originHeight);
     const rightWall = map.createLayer("rightWall", tileset, 0, originHeight);
     const background = map.createLayer("background", tileset, 0, originHeight);
-    
+
     setCollisions(ground, player,scene);
     setCollisions(leftWall, player,scene);
     setCollisions(rightWall, player,scene);
-    
+    background.setDepth(-1);
+    background.setAlpha(.75);
+    ground.setDepth(1);
+    leftWall.setDepth(1);
+    rightWall.setDepth(1)
     return {map: map, ground: ground, leftWall: leftWall, rightWall: rightWall, background: background};
 }
 
