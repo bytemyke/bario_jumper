@@ -4,6 +4,7 @@ import Enemy from "../sprites/Enemy";
 import Player from "../sprites/Player";
 import {spawnPlatforms, initializePlatforms}  from "../functions/spawnPlatforms"; 
 import { createMap } from "../functions/createMap";
+
 export default class GameScene extends Phaser.Scene {
   constructor() {
     super("GameScene");
@@ -33,7 +34,7 @@ export default class GameScene extends Phaser.Scene {
       .setScrollFactor(0);
 
     this.player = new Player(this, gameWidth / 2, gameHeight * 0.75);
-
+      
     this.cursors = this.input.keyboard.addKeys("W,A,S,D");
 
     this.coins = this.physics.add.group();
