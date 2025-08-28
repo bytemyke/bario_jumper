@@ -20,10 +20,10 @@ export default class PreloadScene extends Phaser.Scene {
     // });
     // this.load.image("coin", "coin.png");
     // this.load.spritesheet("coin","coin.png", {frameWidth: 50, frameHeight: 50});
-this.load.spritesheet("coin", "coin.png", {
-  frameWidth: 331,
-  frameHeight: 331
-});
+    this.load.spritesheet("coin", "coin.png", {
+      frameWidth: 331,
+      frameHeight: 331,
+    });
 
     //     // Load tileset image
     // this.load.image("tiles", "assets/tileset.png");
