@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 
 export default class Player extends Phaser.Physics.Arcade.Sprite {
-    current_mode = "mini";
+  current_mode = "mini";
   constructor(scene, x, y) {
     super(scene, x, y, "player");
 
@@ -24,12 +24,29 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.anims.play("idle");
     this.setDepth(1);
   }
-  changeMode(mode) {
+  changeMode(scene, newMode) {
+    this.newMode = newMode;
     //modeOptions = ["mini", "big", "fire"];
-    this.current_mode = mode;
+    scene.anims.play("powerup_" + newMode);
   }
 
   createAnimations(scene) {
+    // Creating all player animations
+    scene.anims.create({
+      key: "powerup_big",
+      frames: [{ key: "player", frame: 0 }],
+      frameRate: 1,
+      repeat: 0,
+    });
+
+    scene.anims.create({
+      key: "powerup_fire",
+      frames: [{ key: "player", frame: 0 }],
+      frameRate: 1,
+      repeat: 0,
+    });
+
+
     // Assuming your spritesheet is 16x16 per frame for example
     scene.anims.create({
       key: "idle",
@@ -60,6 +77,18 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       frames: [{ key: "player", frame: 3 }],
       frameRate: 1,
       repeat: 0,
+    });
+
+    //Animation complete events
+    this.on("animationcomplete", (animation) => {
+      if (animation.key === "powerup_big") {
+        console.log("Finished powerup Big!");
+        this.mode = this.newMode;
+        this.scene.physics.world.resume();
+      } else if (animation.key === "powerup_fire") {
+        this.mode = this.newMode;
+        this.scene.physics.world.resume();      
+      }
     });
   }
 

@@ -14,6 +14,11 @@ export default class PreloadScene extends Phaser.Scene {
       frameWidth: 18,
       frameHeight: 17,
     });
+    this.load.image("flower", "cco/flower_level_up.png");
+    this.load.spritesheet("mushroom", "cco/mushroom_level_up.png", {
+      frameWidth: 37,
+      frameHeight: 34,
+    });
     // this.load.spritesheet("enemy", "cartoon/mushroom_walk.png", {
     //   frameWidth: 16,
     //   frameHeight: 16,
