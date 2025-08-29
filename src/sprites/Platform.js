@@ -1,17 +1,30 @@
 import Phaser from "phaser";
 
+/**
+ * Platform sprite that randomly chooses between the available platform textures.
+ * Spawning logic elsewhere is unchanged; we only vary the texture used.
+ */
+const PLATFORM_TEXTURE_KEYS = ["castle_platform", "basic_1"];
+
 export default class Platform extends Phaser.Physics.Arcade.Sprite {
-  constructor(scene, x, y, texture = "castle_platform") {
-    super(scene, x, y, texture);
+  constructor(scene, x, y, textureKey) {
+    // If a specific texture wasn't requested, pick a valid one at random
+    const candidates = PLATFORM_TEXTURE_KEYS.filter((k) => scene.textures.exists(k));
+    const chosen =
+      textureKey ||
+      (candidates.length > 0
+        ? candidates[Math.floor(Math.random() * candidates.length)]
+        : "castle_platform");
 
-    // Add to scene & physics world
+    super(scene, x, y, chosen);
+
+    // Add to scene & physics world (static body)
     scene.add.existing(this);
-    scene.physics.add.existing(this, true); // true = static body
+    scene.physics.add.existing(this, true);
 
-    // Optional: tweak origin/scale
     this.setOrigin(0.5, 0.5);
 
-    // Add to the scene's platforms group
+    // Register in the scene's platforms group
     scene.platforms.add(this);
   }
 }
