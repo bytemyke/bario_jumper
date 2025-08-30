@@ -4,6 +4,7 @@ import Enemy from "../sprites/Enemy";
 import Player from "../sprites/Player";
 import {spawnPlatforms, initializePlatforms}  from "../functions/spawnPlatforms"; 
 import { createMap } from "../functions/createMap";
+import UpgradeManager from "../classes/UpgradeManager";
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
@@ -12,6 +13,12 @@ export default class GameScene extends Phaser.Scene {
   }
  
   create() {
+    this.anims.create({
+      key: "coinSpin",
+      frames: this.anims.generateFrameNumbers("coin", { start: 0, end: 19 }),
+      frameRate: 10,
+      repeat: -1,
+    });
     
     this.anims.create({
   key: "coinSpin",
@@ -74,8 +81,15 @@ export default class GameScene extends Phaser.Scene {
     this.minScrollY = this.cameras.main.scrollY; // the smallest (highest) scrollY we’ve hit
 
     this.highestCameraY = this.cameras.main.scrollY;
-
+    //map creation
     this.map = createMap(this, this.player);
+    
+    this.upgrades = new UpgradeManager(this, this.player, this.platforms);
+
+    // enemy collisions
+    this.physics.add.overlap(this.player, this.enemies, () => {
+      this.upgrades.handleDamage(); // central place for damage handling
+    });
     initializePlatforms(this, this.player);
     // setInterval(() => this.spawnCoin(), 1000);
   }
@@ -104,19 +118,31 @@ export default class GameScene extends Phaser.Scene {
   }
 
   spawnCoin() {
-  const gameWidth = this.sys.game.config.width;
-  const x = Phaser.Math.Between(50, gameWidth - 50);
+    const gameWidth = this.sys.game.config.width;
+    const x = Phaser.Math.Between(50, gameWidth - 50);
 
-  // Spawn just above the player
-  const y = this.player.y - 100;
+    // Spawn just above the player
+    const y = this.player.y - 100;
 
-  const coin = this.coins.create(x, y, "coin", 0).setDepth(10).setScale(0.1);
-coin.play("coinSpin");
-coin.body.setAllowGravity(false);
-  console.log(coin.x, coin.y);
-  console.log("coin size:", coin.body.width, coin.body.height);
-  console.log("player size:", this.player.body.width, this.player.body.height);
-  console.log("spawned coin at", x, y, "playerY", this.player.y, "cameraY", this.cameras.main.scrollY);
+    const coin = this.coins.create(x, y, "coin", 0).setDepth(10).setScale(0.1);
+    coin.play("coinSpin");
+    coin.body.setAllowGravity(false);
+    console.log(coin.x, coin.y);
+    console.log("coin size:", coin.body.width, coin.body.height);
+    console.log(
+      "player size:",
+      this.player.body.width,
+      this.player.body.height
+    );
+    console.log(
+      "spawned coin at",
+      x,
+      y,
+      "playerY",
+      this.player.y,
+      "cameraY",
+      this.cameras.main.scrollY
+    );
   }
 
   spawnEnemy() {

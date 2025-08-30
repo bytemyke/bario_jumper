@@ -3,6 +3,7 @@ import GameScene from "./scenes/GameScene";
 import MenuScene from "./scenes/MenuScene";
 import GameOverScene from "./scenes/GameOverScene";
 import PreloadScene from "./scenes/PreloadScene";
+
 const config = {
   type: Phaser.AUTO,
   parent: "phaser-game",

@@ -1,100 +1,148 @@
 import Phaser from "phaser";
 
 export default class Player extends Phaser.Physics.Arcade.Sprite {
-    current_mode = "mini";
   constructor(scene, x, y) {
-    super(scene, x, y, "player");
+    super(scene, x, y, "mini_player");
 
-    // Add to scene + physics
     scene.add.existing(this);
     scene.physics.add.existing(this);
 
-    // this.setCollideWorldBounds(true);
+    this.setDepth(1);
 
+    // constants
     this.moveSpeed = 200;
     this.jumpSpeed = -500;
 
-    // Input
+    // state
+    this.current_mode = "mini";
+    this.isTransforming = false;
+
+    // input
     this.cursors = scene.input.keyboard.addKeys("W,A,S,D");
 
-    // Create animations
+    // animations
     this.createAnimations(scene);
+    this.play("idle_mini");
 
-    // Start idle
-    this.anims.play("idle");
-    this.setDepth(1);
+    // listen for anim completion
+    this.on("animationcomplete", this.onAnimComplete, this);
   }
-  changeMode(mode) {
-    //modeOptions = ["mini", "big", "fire"];
+
+  // ====== MODE HANDLING ======
+  changeMode(newMode) {
+    if (this.isTransforming || newMode === this.current_mode) return;
+
+    if (newMode === "big") {
+      this.isTransforming = true;
+      this.body.setVelocity(0, 0);
+      this.body.allowGravity = false;
+      this.anims.stop();
+      this.scene.physics.world.pause();
+
+      this.setTexture("mini_to_big_one", 0);
+      this.play("transform_mini");
+    }
+  }
+
+  onAnimComplete(anim) {
+    if (anim.key !== "transform_mini") return;
+
+    if (this.current_mode === "big") {
+      this.setMode("mini", 18, 17);
+    } else {
+      this.setMode("big", 32, 33);
+    }
+  }
+
+  setMode(mode, w, h) {
     this.current_mode = mode;
+    this.setTexture(`${mode}_player`, 0);
+    this.body.setSize(w, h).setOffset(0, 0);
+    this.body.allowGravity = true;
+
+    this.isTransforming = false;
+    this.play(`idle_${mode}`);
+    this.scene.physics.world.resume();
   }
 
+  // ====== ANIMATIONS ======
   createAnimations(scene) {
-    // Assuming your spritesheet is 16x16 per frame for example
-    scene.anims.create({
-      key: "idle",
-      frames: [{ key: "player", frame: 0 }],
-      frameRate: 1,
+    const a = scene.anims;
+
+    // transform
+    a.create({
+      key: "transform_mini",
+      frames: a.generateFrameNumbers("mini_to_big", { start: 0, end: 9 }),
+      frameRate: 18,
       repeat: 0,
     });
 
-    scene.anims.create({
-      key: "run",
-      frames: [
-        { key: "player", frame: 4 },
-        { key: "player", frame: 5 },
-        { key: "player", frame: 6 },
-      ],
+    // mini
+    a.create({ key: "idle_mini", frames: [{ key: "mini_player", frame: 0 }] });
+    a.create({
+      key: "run_mini",
+      frames: a.generateFrameNumbers("mini_player", { start: 4, end: 6 }),
       frameRate: 8,
       repeat: -1,
     });
-
-    scene.anims.create({
-      key: "jump",
-      frames: [{ key: "player", frame: 2 }],
-      frameRate: 1,
-      repeat: 0,
+    a.create({
+      key: "jump_mini",
+      frames: [{ key: "mini_player", frame: 2 }],
     });
-    scene.anims.create({
+
+    // big
+    a.create({ key: "idle_big", frames: [{ key: "big_player", frame: 0 }] });
+    a.create({
+      key: "run_big",
+      frames: a.generateFrameNumbers("big_player", { start: 4, end: 6 }),
+      frameRate: 8,
+      repeat: -1,
+    });
+    a.create({
+      key: "jump_big",
+      frames: [{ key: "big_player", frame: 2 }],
+    });
+
+    // death
+    a.create({
       key: "die",
-      frames: [{ key: "player", frame: 3 }],
-      frameRate: 1,
-      repeat: 0,
+      frames: [{ key: "mini_player", frame: 3 }],
     });
   }
 
-  die() {
-    //play sound
-    this.setTint(0xff0000);
-    this.anims.play("die");
-  }
-
+  // ====== GAME LOOP ======
   update() {
-    const onGround = this.body.blocked.down;
+    if (this.isTransforming) return;
 
-    // Horizontal movement
-    if (this.cursors.A.isDown) {
+    const onGround = this.body.blocked.down;
+    const { A, D, W } = this.cursors;
+
+    // movement
+    if (A.isDown) {
       this.setVelocityX(-this.moveSpeed);
       this.flipX = true;
-      if (onGround) this.anims.play("run", true);
-    } else if (this.cursors.D.isDown) {
+      if (onGround) this.play(`run_${this.current_mode}`, true);
+    } else if (D.isDown) {
       this.setVelocityX(this.moveSpeed);
       this.flipX = false;
-      if (onGround) this.anims.play("run", true);
+      if (onGround) this.play(`run_${this.current_mode}`, true);
     } else {
       this.setVelocityX(0);
-      if (onGround) this.anims.play("idle", true);
+      if (onGround) this.play(`idle_${this.current_mode}`, true);
     }
 
-    // Jump
-    if (this.cursors.W.isDown && onGround) {
-      //add sound
+    // jump
+    if (W.isDown && onGround) {
       this.setVelocityY(this.jumpSpeed);
     }
 
-    // Jump animation
-    if (!onGround && this.body.velocity.x === 0) {
-      this.anims.play("jump", true);
+    // airborne anim
+    if (!onGround) {
+      this.play(`jump_${this.current_mode}`, true);
     }
+  }
+
+  die() {
+    this.setTint(0xff0000).play("die");
   }
 }
