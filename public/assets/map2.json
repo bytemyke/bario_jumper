@@ -280,10 +280,6 @@
         }],
  "nextlayerid":5,
  "nextobjectid":1,
- "orientation":"orthogonal",
- "renderorder":"right-down",
- "tiledversion":"1.11.2",
- "tileheight":16,
  "tilesets":[
         {
          "columns":23,
@@ -388,9 +384,5 @@
          "tilecount":1275,
          "tileheight":16,
          "tilewidth":16
-        }],
- "tilewidth":16,
- "type":"map",
- "version":"1.10",
- "width":22
+        }]
 }

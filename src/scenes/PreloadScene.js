@@ -34,6 +34,12 @@ export default class PreloadScene extends Phaser.Scene {
       }
     );
 
+    this.load.image("castle_platform", "cartoon/castle_platform.png");
+    this.load.image("basic_1", "cartoon/basic_1.png");
+    // this.load.spritesheet("enemy", "cartoon/mushroom_walk.png", {
+    //   frameWidth: 16,
+    //   frameHeight: 16,
+    // });
     // this.load.image("coin", "coin.png");
     // this.load.spritesheet("coin","coin.png", {frameWidth: 50, frameHeight: 50});
     this.load.spritesheet("coin", "coin.png", {

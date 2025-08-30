@@ -2,14 +2,16 @@ import Phaser from "phaser";
 import Platform from "../sprites/Platform";
 import Enemy from "../sprites/Enemy";
 import Player from "../sprites/Player";
+import {spawnPlatforms, initializePlatforms}  from "../functions/spawnPlatforms"; 
 import { createMap } from "../functions/createMap";
 import UpgradeManager from "../classes/UpgradeManager";
+
 export default class GameScene extends Phaser.Scene {
   constructor() {
     super("GameScene");
     this.score = 0;
   }
-
+ 
   create() {
     this.anims.create({
       key: "coinSpin",
@@ -17,6 +19,13 @@ export default class GameScene extends Phaser.Scene {
       frameRate: 10,
       repeat: -1,
     });
+    
+    this.anims.create({
+  key: "coinSpin",
+  frames: this.anims.generateFrameNumbers("coin", { start: 0, end: 19 }),
+  frameRate: 10,
+  repeat: -1
+});
     console.log("GameScene");
 
     this.score = 0;
@@ -32,13 +41,14 @@ export default class GameScene extends Phaser.Scene {
       .setScrollFactor(0);
 
     this.player = new Player(this, gameWidth / 2, gameHeight * 0.75);
-
+      
     this.cursors = this.input.keyboard.addKeys("W,A,S,D");
 
     this.coins = this.physics.add.group();
     this.enemies = this.physics.add.group();
 
-    this.physics.add.collider(this.player, this.platforms);
+
+  
     this.physics.add.overlap(
       this.player,
       this.coins,
@@ -80,13 +90,16 @@ export default class GameScene extends Phaser.Scene {
     this.physics.add.overlap(this.player, this.enemies, () => {
       this.upgrades.handleDamage(); // central place for damage handling
     });
+    initializePlatforms(this, this.player);
+    // setInterval(() => this.spawnCoin(), 1000);
   }
 
   update() {
     this.player.update();
     // Compute where we'd like the camera if it were allowed to move both ways
     const target = this.player.y - this.followOffsetY;
-
+    console.log(this.platforms);
+    spawnPlatforms(this, this.player);
     // Only allow the camera to move UP (remember: smaller scrollY = higher)
     if (target < this.minScrollY) {
       this.minScrollY = target;
