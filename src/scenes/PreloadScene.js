@@ -22,8 +22,8 @@ export default class PreloadScene extends Phaser.Scene {
 
     this.load.image("flower", "cco/flower_level_up.png");
     this.load.spritesheet("mushroom", "cco/mushroom_level_up.png", {
-      frameWidth: 90,
-      frameHeight: 77,
+      frameWidth: 74 / 2,
+      frameHeight: 32,
     });
     this.load.spritesheet(
       "mini_to_big",
@@ -34,10 +34,6 @@ export default class PreloadScene extends Phaser.Scene {
       }
     );
 
-    // this.load.spritesheet("enemy", "cartoon/mushroom_walk.png", {
-    //   frameWidth: 16,
-    //   frameHeight: 16,
-    // });
     // this.load.image("coin", "coin.png");
     // this.load.spritesheet("coin","coin.png", {frameWidth: 50, frameHeight: 50});
     this.load.spritesheet("coin", "coin.png", {

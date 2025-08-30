@@ -19,21 +19,21 @@ export default class UpgradeManager {
     );
 
     // Spawn timer
-    // this.scene.time.addEvent({
-    //   delay: 10000, // check every 10s
-    //   loop: true,
-    //   callback: () => this.trySpawn(),
-    // });
-    this.spawnMushroom();
+    this.scene.time.addEvent({
+      delay: 10000, // check every 10s
+      loop: true,
+      callback: () => this.trySpawn(),
+    });
   }
 
   trySpawn() {
-    // const chance = Phaser.Math.Between(1, 100);
-    // if (this.player.current_mode === "mini" && chance < 30) {
-    //   this.spawnMushroom();
-    // } else if (this.player.current_mode === "big" && chance < 15) {
-    //   this.spawnFlower();
-    // }
+    const chance = Phaser.Math.Between(1, 100);
+
+    if (this.player.current_mode === "mini" && chance < 30) {
+      this.spawnMushroom();
+    } else if (this.player.current_mode === "big" && chance < 15) {
+      this.spawnFlower();
+    }
   }
 
   spawnMushroom() {
@@ -62,8 +62,11 @@ export default class UpgradeManager {
   }
 
   applyUpgrade(newMode, upgrade) {
+    this.scene.physics.world.pause();
+    this.player.setVelocity(0, 0);
     upgrade.destroy();
-    this.player.changeMode(newMode);
+
+    this.player.changeMode(this.scene, newMode);
   }
 
   handleDamage() {
