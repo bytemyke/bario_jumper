@@ -2,78 +2,71 @@ import Phaser from "phaser";
 import PLATFORM_TYPES from "../data/platformTypes.json";
 
 /**
- * Resolves a texture key from a platform data row.
- * For now we only have "basic" type with 1 or 3 blocks.
- * - 1 block  -> "basic_1"
- * - 3 blocks -> "castle_platform"
+ * Choose one platform row using relative weights.
+ * Accepts either `spawnWeight` or `spawnPercent` fields; defaults to 1.
  */
+function pickWeighted(rows) {
+  const items = Array.isArray(rows) ? rows : [];
+  const weights = items.map(r => Number(r.spawnWeight ?? r.spawnPercent ?? 1));
+  const total = weights.reduce((a, b) => a + (isFinite(b) ? b : 0), 0) || 1;
+  let roll = Math.random() * total;
+  for (let i = 0; i < items.length; i++) {
+    roll -= weights[i];
+    if (roll <= 0) return items[i];
+  }
+  return items[items.length - 1] || { type: "basic", blocks: 3 };
+}
+
+/** With the TileType_TileAmount convention this is universal. */
 function resolveTextureKey(row) {
-  if (row.type === "basic") {
-    if (row.blocks === 1) return "basic_1";
-    if (row.blocks === 3) return "castle_platform";
-  }
-  // Fallback (shouldn’t be hit with current data)
-  return "basic_1";
+  const type = row?.type ?? "basic";
+  const blocks = row?.blocks ?? 3;
+  return `${type}_${blocks}`;
 }
 
-/** Weighted pick among types that are actually loaded in the texture manager. */
-function pickWeightedRow(scene, explicitKey) {
-  // If explicit textureKey was provided and exists, prefer that (rarely used here)
-  if (explicitKey && scene.textures.exists(explicitKey)) {
-    // Try to find a matching row by key inference (not required for our flow)
-    return null;
-  }
-
-  // Filter to rows whose resolved texture is available
-  const available = PLATFORM_TYPES
-    .map(row => ({ row, key: resolveTextureKey(row) }))
-    .filter(({ key }) => scene.textures.exists(key));
-
-  if (available.length === 0) {
-    // As a safe fallback, pretend we have a 1-block basic
-    return { row: { type: "basic", spawnPercent: 1, blocks: 1 }, key: "basic_1" };
-  }
-
-  const total = available.reduce((s, it) => s + (it.row.spawnPercent ?? 1), 0);
-  let r = Math.random() * total;
-
-  for (const it of available) {
-    r -= (it.row.spawnPercent ?? 1);
-    if (r <= 0) return it;
-  }
-  return available[available.length - 1];
-}
-
-export default class Platform extends Phaser.Physics.Arcade.Sprite {
-  constructor(scene, x, y, textureKey = null) {
-    const picked = pickWeightedRow(scene, textureKey);
-    const key = textureKey && scene.textures.exists(textureKey)
-      ? textureKey
-      : picked.key;
-
+/**
+ * Platform GameObject with a static Arcade Physics body.
+ * - Uses PLATFORM_TYPES to select a texture and set `.blocks`
+ * - Adds itself to `scene.platforms` if present
+ */
+export default class Platform extends Phaser.GameObjects.Image {
+  constructor(scene, x, y, row = null) {
+    const chosen = row || pickWeighted(PLATFORM_TYPES);
+    const key = resolveTextureKey(chosen);
     super(scene, x, y, key);
 
-    // Add to scene & physics world (static body)
+    this.type = chosen?.type ?? "basic";
+    this.blocks = chosen?.blocks ?? 3;
+    this.isEssential = false;
+    this.isOptional = false;
+
+    // Ensure present in the display list
     scene.add.existing(this);
+
+    // Attach a STATIC arcade body
     scene.physics.add.existing(this, true);
 
+    // sizing/origin
     this.setOrigin(0.5, 0.5);
 
-    // Attach metadata for spacing / head-clear logic
-    const row = picked?.row ?? null;
-    this.blocks = row?.blocks ?? (key === "castle_platform" ? 3 : 1);
-    this.typeKey = key;
-    this.isBasic = true; // current dataset is all "basic"
-
-    // Ensure physics body matches the texture frame size
+    // Make sure the static body matches the current texture/frame
     if (this.body && this.body.setSize) {
-      const fw = this.frame?.realWidth ?? this.width;
-      const fh = this.frame?.realHeight ?? this.height;
+      const fw = this.displayWidth || this.width;
+      const fh = this.displayHeight || this.height;
       this.body.setSize(fw, fh, true);
-      this.refreshBody?.();
+      this.body.updateFromGameObject();
     }
 
-    // Register in the scene's platforms group
-    scene.platforms.add(this);
+    // Track inside the scene's static group (if created)
+    if (scene.platforms && scene.platforms.add) {
+      scene.platforms.add(this);
+    }
+  }
+
+  /** Re-sync the static body after manual position/size changes. */
+  refreshBody() {
+    if (this.body && this.body.updateFromGameObject) {
+      this.body.updateFromGameObject();
+    }
   }
 }

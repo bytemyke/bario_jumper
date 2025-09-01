@@ -117,20 +117,26 @@ export function spawnPlatforms(scene, player, landedPlatform = null) {
   const h = maxJumpHeight(scene, player);
   const reach = horizontalReach(scene, player);
 
-  const camTop = scene.cameras.main.scrollY;
-  const camBot = camTop + scene.scale.height;
+  const camTop  = scene.cameras.main.scrollY;
+  const camBot  = camTop + scene.scale.height;
 
   const bandTop = player.y - GAP_MAX_FRAC * h;
   const bandBot = player.y - GAP_MIN_FRAC * h;
 
-  /* ---- 1) Cull below screen ---- */
+  /* ---- 1) Cull below screen AND count essentials removed ---- */
   const killY = camBot + 4;
-  let culled = 0;
-  scene.platforms.children.iterate(p => {
-    if (p && p.y > killY) { p.destroy(); culled++; }
-  });
+  let essentialCulled = 0;
+  let optionalCulled  = 0;
 
-  const totalNow = countPlatforms(scene);
+  scene.platforms.children.iterate(p => {
+    if (p && p.y > killY) {
+      const wasEssential = !!p.isEssential && !p.isOptional;
+      const wasOptional  = !!p.isOptional;
+      if (wasEssential) essentialCulled++;
+      if (wasOptional)  optionalCulled++;
+      p.destroy();
+    }
+  });
 
   /* ---- 2) Seed a full ladder + small off-screen headroom on first landing ---- */
   if (!scene._seeded) {
@@ -139,15 +145,10 @@ export function spawnPlatforms(scene, player, landedPlatform = null) {
     return;
   }
 
-  /* ---- 3) After seeding: if anything fell off, add exactly one essential at the (preferably off-screen) top ---- */
-  if (
-    culled > 0 &&
-    totalNow < PLATFORM_POOL_CAP &&
-    currentInView(scene, camTop, camBot) < MAX_IN_VIEW
-  ) {
+  /* ---- 3) Replenish exactly as many essentials as were culled (ignore caps for essentials) ---- */
+  for (let i = 0; i < essentialCulled; i++) {
     const created = spawnOneAtTopPreferOffscreen(scene, player, h, reach, camTop);
-
-    // Try to add lateral optionals (off-screen as well) between the new top and previous top
+    // Optionals between the new top and previous top (stay off-screen if possible)
     if (created?.main && created.prevTop) {
       spawnLateralOptionalsBetween(scene, player, created.prevTop, created.main, h, reach, {
         offscreenY: camTop - OPTIONAL_OFFSCREEN_BUFFER
@@ -155,11 +156,11 @@ export function spawnPlatforms(scene, player, landedPlatform = null) {
     }
   }
 
-  /* ---- 4) Small recycle: gently reposition the last-landed platform into a fresher band spot ---- */
+  /* ---- 4) Small recycle: gently reposition the last-landed platform into a fresh band spot ---- */
   const keep = [];
   scene.platforms.children.iterate(p => {
     if (!p) return;
-    const inBand = p.y < player.y && p.y >= bandTop && p.y <= bandBot;
+    const inBand  = p.y < player.y && p.y >= bandTop && p.y <= bandBot;
     const inReach = Math.abs(p.x - player.x) <= reach;
     if (inBand && inReach) keep.push(p);
   });
@@ -176,12 +177,12 @@ export function spawnPlatforms(scene, player, landedPlatform = null) {
 /* ---------------- Seeding & top-layer helpers ---------------- */
 
 function seedFullScreen(scene, player, h, reach, camTop, camBot, bandTop, bandBot) {
-  const minGap = GAP_MIN_FRAC * h;
-  const maxGap = GAP_MAX_FRAC * h;
+  const minGap   = GAP_MIN_FRAC * h;
+  const maxGap   = GAP_MAX_FRAC * h;
   const topLimit = camTop + 12;
 
   // First rung near bottom of band
-  const firstY = Phaser.Math.Linear(bandTop, bandBot, 0.90);
+  const firstY   = Phaser.Math.Linear(bandTop, bandBot, 0.90);
   const firstXMin = Math.max(X_PADDING, player.x - reach * 0.6);
   const firstXMax = Math.min(scene.scale.width - X_PADDING, player.x + reach * 0.6);
 
@@ -231,7 +232,7 @@ function seedFullScreen(scene, player, h, reach, camTop, camBot, bandTop, bandBo
       next.isEssential = true;
       next.refreshBody?.();
 
-      // NEW: try to place up to 2 lateral optionals (left/right lanes) outside the essential corridor
+      // Try to place lateral optionals (left/right lanes) outside the essential corridor
       spawnLateralOptionalsBetween(scene, player, next, prev, h, reach);
 
       prev = next;
@@ -338,7 +339,7 @@ function spawnOneAtTopPreferOffscreen(scene, player, h, reach, camTop) {
   return null;
 }
 
-/* ---------------- Lateral optionals (the new “more options” logic) ---------------- */
+/* ---------------- Lateral optionals (the “more options” logic) ---------------- */
 
 /**
  * Place up to OPTIONALS_PER_GAP_TARGET optional platforms between `lower` and `upper`,
@@ -539,7 +540,7 @@ function placeAt(scene, platform, x, y, player, h, reach) {
 /**
  * Spacing with head-clear and Big-Bario vertical safety:
  *  - Reject if too close on BOTH axes.
- *  - If a narrow (basic_1) sits below a much wider platform within a normal step gap,
+ *  - If a narrow (blocks === 1) sits below a much wider platform within a normal step gap,
  *    require extra horizontal offset (head-clear) to avoid underside bonks.
  *  - Uses `.blocks` metadata when available; otherwise falls back to pixel widths.
  */
@@ -552,7 +553,7 @@ function canPlaceWithSpacing(scene, x, y, platform, player, relax = 1.0) {
   const bandMin = GAP_MIN_FRAC * h;
   const bandMax = GAP_MAX_FRAC * h;
 
-  const isBasic = (platform.texture?.key === "basic_1");
+  const isNarrow = (platform.blocks ?? 1) === 1;
 
   for (const peer of scene.platforms.getChildren()) {
     if (!peer || peer === platform) continue;
@@ -575,7 +576,7 @@ function canPlaceWithSpacing(scene, x, y, platform, player, relax = 1.0) {
         ? (blocksPeer >= blocksSelf * 1.5)
         : (widthPeer >= widthSelf * 1.5);
 
-    if (isBasic && peerMuchWider && dySigned > 0 && dySigned >= bandMin * 0.8 && dySigned <= bandMax * 1.2) {
+    if (isNarrow && peerMuchWider && dySigned > 0 && dySigned >= bandMin * 0.8 && dySigned <= bandMax * 1.2) {
       const minHeadClear = Math.max(HEAD_CLEAR_FRAC * widthPeer, getPlayerWidth(player) * 0.8);
       if (dx < minHeadClear) return false;
     }
@@ -599,7 +600,7 @@ function relaxFactorForTry(tryIndex) {
 function getPlatformWidth(p) {
   if (p.displayWidth) return p.displayWidth;
   if (p.body?.width) return p.body.width;
-  const tex = p.scene?.textures?.get(p.texture?.key || "castle_platform");
+  const tex = p.scene?.textures?.get(p.texture?.key || "basic_3");
   const src = tex && tex.getSourceImage ? tex.getSourceImage() : null;
   return (src && src.width) ? src.width : 64;
 }
