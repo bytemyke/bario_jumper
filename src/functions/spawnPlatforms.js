@@ -2,17 +2,17 @@
 import Phaser from "phaser";
 import Platform from "../sprites/Platform";
 
-/* ---------------- Tunables (difficulty & density) ---------------- */
+/* ---------------- Tunables (density & difficulty) ---------------- */
 
-// Global hard cap on total platforms alive
-const PLATFORM_POOL_CAP = 15;
+// Hard cap on total platforms alive
+const PLATFORM_POOL_CAP = 18; // a touch higher to allow more optionals
 
 // Max platforms allowed in the camera view at once
-const MAX_IN_VIEW = 12;
+const MAX_IN_VIEW = 14;
 
-// Vertical placement band relative to jump height
-const GAP_MIN_FRAC = 0.35; // lower edge (closer to player; easier to reach)
-const GAP_MAX_FRAC = 0.85; // upper edge (higher above player)
+// Reach band (vertical)
+const GAP_MIN_FRAC = 0.35;
+const GAP_MAX_FRAC = 0.85;
 
 // Horizontal reach safety margin (0..1)
 const SAFETY = 0.85;
@@ -20,52 +20,54 @@ const SAFETY = 0.85;
 // Keep off the extreme edges
 const X_PADDING = 40;
 
-// Attempts when sampling a valid position in the band
+// Attempts when sampling a valid position
 const MAX_TRIES = 40;
 
-// --- SPACING RULES ---
-const H_SPACING_MULT = 1.2;        // X: ≥ 1.2 × wider platform width
-const V_SPACING_PLAYER_MULT = 2.4; // Y: ≥ 2.4 × player height
+/* ---------------- Spacing rules (no blocking / no pinches) ---------------- */
 
-// Head-clear to avoid narrow-under-wide vertical traps
-const HEAD_CLEAR_FRAC = 0.6; // fraction of upper width for horizontal offset
+const H_SPACING_MULT = 1.2;
 
-/* -------- Optional platform policy (minimal extras) -------- */
+// ⬇️ Doubled so Big Bario (2× tall) has safe clearance when platforms stack vertically
+const V_SPACING_PLAYER_MULT = 4.8;
 
-// Chance to add an optional between two main rungs (kept small)
-const OPTIONAL_SPAWN_CHANCE = 0.60; // was 0.35
+// Extra horizontal offset when a narrow sits below a much wider one
+const HEAD_CLEAR_FRAC = 0.6;
 
-// Max optional platforms visible at once
-const OPTIONAL_MAX_IN_VIEW = 6; // was 3
+/* ---------------- Optional platform policy (more, but out of the way) ---------------- */
 
-// Push optional farther from the “center path” (more X)
-const OPTIONAL_MIN_AWAY_FRAC = 0.78; // tuned higher earlier
+// We’ll try to place up to this many *lateral* optionals per essential gap (left/right lanes).
+const OPTIONALS_PER_GAP_TARGET = 3;
 
-// Also keep some distance from each anchor on X
-const OPTIONAL_MIN_X_FROM_ANCHOR_FRAC = 0.48; // tuned higher earlier
+// Overall visible optional cap
+const OPTIONAL_MAX_IN_VIEW = 12;
 
-// Bias optional Y closer to the LOWER rung so there’s more room to jump up
-const OPTIONAL_Y_FRACTION_MIN = 0.30; // 30% of gap up from lower
-const OPTIONAL_Y_FRACTION_MAX = 0.45; // 45% of gap up from lower
+// Try to place optionals between rungs more often
+// (top-of-screen spawns still prefer off-screen placement)
+const OPTIONAL_SPAWN_CHANCE = 0.85;
 
-// Ensure enough vertical room from optional to the upper rung (more Y)
+// Place optionals farther from the straight path and anchor rungs
+const OPTIONAL_MIN_AWAY_FRAC = 0.80;        // distance from “center path”
+const OPTIONAL_MIN_X_FROM_ANCHOR_FRAC = 0.52;
+
+// Bias optional Y toward the lower rung so there’s headroom to the upper
+const OPTIONAL_Y_FRACTION_MIN = 0.28;
+const OPTIONAL_Y_FRACTION_MAX = 0.50;
+
+// Vertical room to the upper rung and nearest-above platform
 const OPTIONAL_MIN_UP_CLEAR_PLAYER_MULT = 3.0;
+const OPTIONAL_MIN_UP_CLEAR_ANY_MULT    = 2.8;
 
-// Also ensure clearance to the nearest platform above (not only the upper rung)
-const OPTIONAL_MIN_UP_CLEAR_ANY_MULT = 2.6;
+/* ---------------- Essential corridor (strict keep-out) ---------------- */
 
-/* -------- Off-screen spawn buffers (post-seed only) -------- */
-// We prefer to spawn above the camera; if that would break reachability, keep it reachable even if barely visible.
-const OFFSCREEN_SPAWN_BUFFER = 64;    // main top rung tries to be >= 64px above camTop
-const OPTIONAL_OFFSCREEN_BUFFER = 48; // paired optional tries to be >= 48px above camTop
+// Widen slightly so optionals never clutter the climb line
+const ESSENTIAL_CORRIDOR_FRAC   = 0.45; // × horizontal reach
+const ESSENTIAL_CORRIDOR_MIN_PX = 28;
 
-/* -------- Off-screen headroom built during initial seed -------- */
-const SEED_HEADROOM_JUMPS = 3; // how many extra rungs to prebuild above the camera on first seed
+/* ---------------- Off-screen behavior ---------------- */
 
-/* -------- “Essential corridor” keep-out for optionals -------- */
-// Half-width of the no-fly corridor around the straight path between lower and upper essentials.
-const ESSENTIAL_CORRIDOR_FRAC = 0.38;   // × horizontal reach
-const ESSENTIAL_CORRIDOR_MIN_PX = 22;   // absolute floor in pixels
+const OFFSCREEN_SPAWN_BUFFER       = 64;
+const OPTIONAL_OFFSCREEN_BUFFER    = 48;
+const SEED_HEADROOM_JUMPS          = 3;
 
 /* ---------------- Public API ---------------- */
 
@@ -109,12 +111,6 @@ export function initializePlatforms(scene, player) {
   });
 }
 
-/**
- * Called on each true landing.
- * First landing: seed a full, reachable ladder across the whole screen height + a small off-screen headroom buffer.
- * Thereafter: only despawn when off the bottom, and spawn **one** new platform at the top if any were culled.
- * Optional platforms may be added *between* rungs (more often now), but never inside the essential corridor.
- */
 export function spawnPlatforms(scene, player, landedPlatform = null) {
   if (!scene._initialLandingDone) return;
 
@@ -127,7 +123,7 @@ export function spawnPlatforms(scene, player, landedPlatform = null) {
   const bandTop = player.y - GAP_MAX_FRAC * h;
   const bandBot = player.y - GAP_MIN_FRAC * h;
 
-  /* ---- 1) Cull only when truly below the screen ---- */
+  /* ---- 1) Cull below screen ---- */
   const killY = camBot + 4;
   let culled = 0;
   scene.platforms.children.iterate(p => {
@@ -136,29 +132,30 @@ export function spawnPlatforms(scene, player, landedPlatform = null) {
 
   const totalNow = countPlatforms(scene);
 
-  /* ---- 2) First landing: seed a full ladder + off-screen headroom ---- */
+  /* ---- 2) Seed a full ladder + small off-screen headroom on first landing ---- */
   if (!scene._seeded) {
     seedFullScreen(scene, player, h, reach, camTop, camBot, bandTop, bandBot);
     scene._seeded = true;
     return;
   }
 
-  /* ---- 3) After seeding: if anything fell off, add exactly one at the (preferably off-screen) top ---- */
+  /* ---- 3) After seeding: if anything fell off, add exactly one essential at the (preferably off-screen) top ---- */
   if (
     culled > 0 &&
     totalNow < PLATFORM_POOL_CAP &&
     currentInView(scene, camTop, camBot) < MAX_IN_VIEW
   ) {
     const created = spawnOneAtTopPreferOffscreen(scene, player, h, reach, camTop);
-    // Maybe add a minimal optional between the new top rung and the previous top-most rung — prefer off-screen too
+
+    // Try to add lateral optionals (off-screen as well) between the new top and previous top
     if (created?.main && created.prevTop) {
-      maybeSpawnOptionalBetween(scene, player, created.prevTop, created.main, h, reach, {
+      spawnLateralOptionalsBetween(scene, player, created.prevTop, created.main, h, reach, {
         offscreenY: camTop - OPTIONAL_OFFSCREEN_BUFFER
       });
     }
   }
 
-  /* ---- 4) Optional recycle (move, not create) ---- */
+  /* ---- 4) Small recycle: gently reposition the last-landed platform into a fresher band spot ---- */
   const keep = [];
   scene.platforms.children.iterate(p => {
     if (!p) return;
@@ -176,14 +173,14 @@ export function spawnPlatforms(scene, player, landedPlatform = null) {
   }
 }
 
-/* ---------------- Seeding & Top-layer helpers ---------------- */
+/* ---------------- Seeding & top-layer helpers ---------------- */
 
 function seedFullScreen(scene, player, h, reach, camTop, camBot, bandTop, bandBot) {
   const minGap = GAP_MIN_FRAC * h;
   const maxGap = GAP_MAX_FRAC * h;
-  const topLimit = camTop + 12; // inside the view for initial fill
+  const topLimit = camTop + 12;
 
-  // First rung near the bottom of the band
+  // First rung near bottom of band
   const firstY = Phaser.Math.Linear(bandTop, bandBot, 0.90);
   const firstXMin = Math.max(X_PADDING, player.x - reach * 0.6);
   const firstXMax = Math.min(scene.scale.width - X_PADDING, player.x + reach * 0.6);
@@ -201,7 +198,7 @@ function seedFullScreen(scene, player, h, reach, camTop, camBot, bandTop, bandBo
   let prev = p1;
   let safetyCounter = 0;
 
-  // Stage A: fill up to (just inside) the visible top
+  // Stage A: fill up to visible top
   while (
     prev.y - maxGap > topLimit &&
     currentInView(scene, camTop, camBot) < MAX_IN_VIEW &&
@@ -234,8 +231,8 @@ function seedFullScreen(scene, player, h, reach, camTop, camBot, bandTop, bandBo
       next.isEssential = true;
       next.refreshBody?.();
 
-      // Optionals during seed render as part of the initial layout, but must stay out of the essential corridor
-      maybeSpawnOptionalBetween(scene, player, next, prev, h, reach);
+      // NEW: try to place up to 2 lateral optionals (left/right lanes) outside the essential corridor
+      spawnLateralOptionalsBetween(scene, player, next, prev, h, reach);
 
       prev = next;
     } else {
@@ -244,7 +241,7 @@ function seedFullScreen(scene, player, h, reach, camTop, camBot, bandTop, bandBo
     }
   }
 
-  // Optional: try to snap exactly at topLimit if we didn't land close enough
+  // Optional: snap another essential exactly at topLimit if feasible
   if (
     prev.y - minGap > topLimit &&
     currentInView(scene, camTop, camBot) < MAX_IN_VIEW &&
@@ -269,7 +266,7 @@ function seedFullScreen(scene, player, h, reach, camTop, camBot, bandTop, bandBo
     if (ok) { last.isEssential = true; last.refreshBody?.(); prev = last; } else { last.destroy(); }
   }
 
-  // Stage B: prebuild a short off-screen headroom stack so future spawns stay invisible
+  // Stage B: prebuild a short off-screen headroom stack
   for (let i = 0; i < SEED_HEADROOM_JUMPS; i++) {
     if (countPlatforms(scene) >= PLATFORM_POOL_CAP) break;
 
@@ -277,7 +274,6 @@ function seedFullScreen(scene, player, h, reach, camTop, camBot, bandTop, bandBo
     const gap = Phaser.Math.FloatBetween(minGap, maxGap);
     let y = prev.y - gap;
 
-    // choose an X reachable from prev
     const minX = Math.max(X_PADDING, prev.x - reach);
     const maxX = Math.min(scene.scale.width - X_PADDING, prev.x + reach);
 
@@ -306,7 +302,6 @@ function seedFullScreen(scene, player, h, reach, camTop, camBot, bandTop, bandBo
   }
 }
 
-/** Spawn exactly one platform near/above the current camera, preferring off-screen but NEVER creating an unreachable gap. */
 function spawnOneAtTopPreferOffscreen(scene, player, h, reach, camTop) {
   const minGap = GAP_MIN_FRAC * h;
   const maxGap = GAP_MAX_FRAC * h;
@@ -318,11 +313,8 @@ function spawnOneAtTopPreferOffscreen(scene, player, h, reach, camTop) {
 
   const prevTop = children.slice().sort((a, b) => a.y - b.y)[0];
 
-  // Compute a gap that (1) keeps it reachable, (2) puts it off-screen if possible.
   const desiredGapToOffscreen = prevTop.y - offscreenTop;
   const gap = Phaser.Math.Clamp(desiredGapToOffscreen, minGap, maxGap);
-
-  // Final y: off-screen when possible, otherwise at prevTop.y - maxGap (still reachable).
   const y = prevTop.y - gap;
 
   const p = new Platform(scene, 0, 0);
@@ -346,90 +338,109 @@ function spawnOneAtTopPreferOffscreen(scene, player, h, reach, camTop) {
   return null;
 }
 
-/* ----------- Minimal optional platform placement (kept out of essential corridor) ----------- */
+/* ---------------- Lateral optionals (the new “more options” logic) ---------------- */
 
-function maybeSpawnOptionalBetween(scene, player, upper, lower, h, reach, opts = {}) {
+/**
+ * Place up to OPTIONALS_PER_GAP_TARGET optional platforms between `lower` and `upper`,
+ * one per side (left/right), outside the essential corridor and within reach of at least one anchor.
+ * If opts.offscreenY is provided, only place if the platform will be above that Y (keeps top spawns off-screen).
+ */
+function spawnLateralOptionalsBetween(scene, player, upper, lower, h, reach, opts = {}) {
   if (Math.random() > OPTIONAL_SPAWN_CHANCE) return;
-  if (countOptionalInView(scene) >= OPTIONAL_MAX_IN_VIEW) return;
-  if (countPlatforms(scene) >= PLATFORM_POOL_CAP) return;
-  if (currentInView(scene, scene.cameras.main.scrollY, scene.cameras.main.scrollY + scene.scale.height) >= MAX_IN_VIEW) return;
 
-  const gap = lower.y - upper.y;
-  if (gap <= 0) return;
+  const want = OPTIONALS_PER_GAP_TARGET;
+  let placed = 0;
 
-  // Y: bias toward LOWER rung to increase headroom to the upper rung
-  const frac = Phaser.Math.FloatBetween(OPTIONAL_Y_FRACTION_MIN, OPTIONAL_Y_FRACTION_MAX);
-  const proposedY = lower.y - gap * frac;
-  if (proposedY >= player.y) return;
+  // Alternate sides so we don’t crowd one lane
+  const order = Math.random() < 0.5 ? ["left", "right"] : ["right", "left"];
 
-  // If caller requested off-screen, only place if it will be off-screen; otherwise skip (keep optionals minimal)
-  if (opts.offscreenY != null && !(proposedY <= opts.offscreenY)) return;
+  for (const side of order) {
+    if (placed >= want) break;
+    const ok = placeOptionalOnSide(scene, player, upper, lower, h, reach, side, opts);
+    if (ok) placed++;
+  }
 
-  // Require extra vertical room to the upper rung
-  const minUpClearUpper = OPTIONAL_MIN_UP_CLEAR_PLAYER_MULT * getPlayerHeight(player);
-  const upClearUpper = proposedY - upper.y;
-  if (upClearUpper < minUpClearUpper) return;
-
-  const w = scene.scale.width;
-  const center = (upper.x + lower.x) / 2;
-  const targetSide = center < w / 2 ? "right" : "left";
-
-  const minAway = OPTIONAL_MIN_AWAY_FRAC * reach;
-  const minFromAnchor = OPTIONAL_MIN_X_FROM_ANCHOR_FRAC * reach;
-
-  const leftRange = [X_PADDING, Math.max(X_PADDING, center - reach)];
-  const rightRange = [Math.min(w - X_PADDING, center + reach), w - X_PADDING];
-  const ranges = targetSide === "right" ? [rightRange, leftRange] : [leftRange, rightRange];
-
-  for (const [rx0, rx1] of ranges) {
-    let placed = false;
-
-    for (let t = 1; t <= Math.floor(MAX_TRIES / 2); t++) {
-      const x = Phaser.Math.FloatBetween(rx0, rx1);
-
-      // Farther from center path and each anchor (more X)
-      if (Math.abs(x - center) < minAway) continue;
-      if (Math.abs(x - upper.x) < minFromAnchor) continue;
-      if (Math.abs(x - lower.x) < minFromAnchor) continue;
-
-      // Must be reachable from at least one anchor
-      if (!canReach(lower.x, lower.y, x, proposedY, h, reach) && !canReach(upper.x, upper.y, x, proposedY, h, reach)) {
-        continue;
-      }
-
-      // Keep out of the essential corridor (no-fly zone around the straight path lower->upper)
-      if (!isOutsideEssentialCorridor(player, x, proposedY, upper, lower, reach)) {
-        continue;
-      }
-
-      // Ensure clearance to the nearest platform above (not only the upper rung)
-      const nearestAbove = getNearestPlatformAbove(scene, proposedY);
-      if (nearestAbove) {
-        const minUpClearAny = OPTIONAL_MIN_UP_CLEAR_ANY_MULT * getPlayerHeight(player);
-        const upClearAny = proposedY - nearestAbove.y;
-        if (upClearAny < minUpClearAny) continue;
-      }
-
-      const p = new Platform(scene, 0, 0);
-      p.isOptional = true;
-
-      const relax = 1.0;
-      if (!canPlaceWithSpacing(scene, x, proposedY, p, player, relax)) {
-        p.destroy();
-        continue;
-      }
-
-      p.setPosition(x, proposedY);
-      p.refreshBody?.();
-      placed = true;
-      break;
+  // If we still want more (e.g., one side failed), try the other side once more
+  if (placed < want) {
+    for (const side of order) {
+      if (placed >= want) break;
+      const ok = placeOptionalOnSide(scene, player, upper, lower, h, reach, side, opts);
+      if (ok) placed++;
     }
-
-    if (placed) break;
   }
 }
 
-/* ---------------- Existing helpers (+ head-clear rule uses .blocks when available) ---------------- */
+function placeOptionalOnSide(scene, player, upper, lower, h, reach, targetSide, opts = {}) {
+  if (countOptionalInView(scene) >= OPTIONAL_MAX_IN_VIEW) return false;
+  if (countPlatforms(scene) >= PLATFORM_POOL_CAP) return false;
+
+  const gap = lower.y - upper.y;
+  if (gap <= 0) return false;
+
+  // Y: bias toward LOWER rung
+  const frac = Phaser.Math.FloatBetween(OPTIONAL_Y_FRACTION_MIN, OPTIONAL_Y_FRACTION_MAX);
+  const proposedY = lower.y - gap * frac;
+  if (proposedY >= player.y) return false;
+
+  if (opts.offscreenY != null && !(proposedY <= opts.offscreenY)) return false;
+
+  const minUpClearUpper = OPTIONAL_MIN_UP_CLEAR_PLAYER_MULT * getPlayerHeight(player);
+  const upClearUpper = proposedY - upper.y;
+  if (upClearUpper < minUpClearUpper) return false;
+
+  // Pick an X range on the requested side
+  const w = scene.scale.width;
+  const center = (upper.x + lower.x) / 2;
+
+  const leftRange  = [X_PADDING, Math.max(X_PADDING, center - reach)];
+  const rightRange = [Math.min(w - X_PADDING, center + reach), w - X_PADDING];
+  const [rx0, rx1] = targetSide === "right" ? rightRange : leftRange;
+
+  // How far to stay from center path and each anchor
+  const minAway = OPTIONAL_MIN_AWAY_FRAC * reach;
+  const minFromAnchor = OPTIONAL_MIN_X_FROM_ANCHOR_FRAC * reach;
+
+  for (let t = 1; t <= Math.floor(MAX_TRIES / 2); t++) {
+    const x = Phaser.Math.FloatBetween(rx0, rx1);
+
+    // Farther from path & anchors
+    if (Math.abs(x - center) < minAway) continue;
+    if (Math.abs(x - upper.x) < minFromAnchor) continue;
+    if (Math.abs(x - lower.x) < minFromAnchor) continue;
+
+    // Must be reachable from at least one anchor
+    if (!canReach(lower.x, lower.y, x, proposedY, h, reach) && !canReach(upper.x, upper.y, x, proposedY, h, reach)) {
+      continue;
+    }
+
+    // Keep out of essential corridor
+    if (!isOutsideEssentialCorridor(player, x, proposedY, upper, lower, reach)) continue;
+
+    // Also keep some room to the nearest platform above (not only the upper rung)
+    const nearestAbove = getNearestPlatformAbove(scene, proposedY);
+    if (nearestAbove) {
+      const minUpClearAny = OPTIONAL_MIN_UP_CLEAR_ANY_MULT * getPlayerHeight(player);
+      const upClearAny = proposedY - nearestAbove.y;
+      if (upClearAny < minUpClearAny) continue;
+    }
+
+    const p = new Platform(scene, 0, 0);
+    p.isOptional = true;
+
+    if (!canPlaceWithSpacing(scene, x, proposedY, p, player, 1.0)) {
+      p.destroy();
+      continue;
+    }
+
+    p.setPosition(x, proposedY);
+    p.refreshBody?.();
+    return true;
+  }
+
+  return false;
+}
+
+/* ---------------- Utility & constraints ---------------- */
 
 function countPlatforms(scene) {
   return scene.platforms.getChildren().filter(Boolean).length;
@@ -459,9 +470,8 @@ function getNearestPlatformAbove(scene, y) {
 }
 
 function isOutsideEssentialCorridor(player, x, y, upper, lower, reach) {
-  // Interpolate along the straight path from lower -> upper to find the expected path X at Y.
   const totalDy = lower.y - upper.y;
-  if (totalDy <= 0) return true; // degenerate; don’t block
+  if (totalDy <= 0) return true;
 
   const t = Phaser.Math.Clamp((lower.y - y) / totalDy, 0, 1);
   const xPath = Phaser.Math.Linear(lower.x, upper.x, t);
@@ -527,7 +537,7 @@ function placeAt(scene, platform, x, y, player, h, reach) {
 }
 
 /**
- * Spacing with head-clear:
+ * Spacing with head-clear and Big-Bario vertical safety:
  *  - Reject if too close on BOTH axes.
  *  - If a narrow (basic_1) sits below a much wider platform within a normal step gap,
  *    require extra horizontal offset (head-clear) to avoid underside bonks.
@@ -560,7 +570,6 @@ function canPlaceWithSpacing(scene, x, y, platform, player, relax = 1.0) {
     // Head-clear: candidate below a wider platform within a normal step gap
     const dySigned = y - peer.y; // > 0 means candidate is below 'peer'
 
-    // Prefer block-count comparison when both are known; otherwise fall back to pixel width ratio.
     const peerMuchWider =
       (blocksSelf != null && blocksPeer != null)
         ? (blocksPeer >= blocksSelf * 1.5)
@@ -573,6 +582,8 @@ function canPlaceWithSpacing(scene, x, y, platform, player, relax = 1.0) {
   }
   return true;
 }
+
+/* ---------------- Physics-derived helpers ---------------- */
 
 const RELAX_START_TRY = 24;
 const RELAX_STEP = 0.05;
