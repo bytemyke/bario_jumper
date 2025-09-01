@@ -1,0 +1,4 @@
+[
+  { "type": "basic", "spawnPercent": 50, "blocks": 1 },
+  { "type": "basic", "spawnPercent": 50, "blocks": 3 }
+]
