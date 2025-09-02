@@ -27,7 +27,7 @@ const MAX_TRIES = 40;
 
 const H_SPACING_MULT = 1.2;
 
-// ⬇️ Doubled so Big Bario (2× tall) has safe clearance when platforms stack vertically
+// Doubled so Big Bario (2× tall) has safe clearance when platforms stack vertically
 const V_SPACING_PLAYER_MULT = 4.8;
 
 // Extra horizontal offset when a narrow sits below a much wider one
@@ -123,20 +123,40 @@ export function spawnPlatforms(scene, player, landedPlatform = null) {
   const bandTop = player.y - GAP_MAX_FRAC * h;
   const bandBot = player.y - GAP_MIN_FRAC * h;
 
-  /* ---- 1) Cull below screen AND count essentials removed ---- */
+  /* ---- 1) Cull below screen AND handle replenishment inline ---- */
   const killY = camBot + 4;
-  let essentialCulled = 0;
-  let optionalCulled  = 0;
 
-  scene.platforms.children.iterate(p => {
-    if (p && p.y > killY) {
-      const wasEssential = !!p.isEssential && !p.isOptional;
-      const wasOptional  = !!p.isOptional;
-      if (wasEssential) essentialCulled++;
-      if (wasOptional)  optionalCulled++;
+  // Snapshot so we can safely spawn/destroy inside the loop
+  const toCheck = scene.platforms.getChildren().slice();
+
+  for (const p of toCheck) {
+    if (!p) continue;
+    if (p.y > killY) {
+      if (p.isEssential && !p.isOptional) {
+        // Replace this essential rung at the (preferably off-screen) top
+        const created = spawnOneAtTopPreferOffscreen(scene, player, h, reach, camTop);
+
+        // Optional side-lanes between previous top and new top (off-screen if possible)
+        if (created?.main && created.prevTop) {
+          spawnLateralOptionalsBetween(
+            scene,
+            player,
+            created.prevTop,
+            created.main,
+            h,
+            reach,
+            { offscreenY: camTop - OPTIONAL_OFFSCREEN_BUFFER }
+          );
+        }
+      } else {
+        // Optional culled — no special handling required per your note
+        // (leave empty unless you later want to track optional churn)
+      }
+
+      // Finally remove the culled platform
       p.destroy();
     }
-  });
+  }
 
   /* ---- 2) Seed a full ladder + small off-screen headroom on first landing ---- */
   if (!scene._seeded) {
@@ -145,18 +165,7 @@ export function spawnPlatforms(scene, player, landedPlatform = null) {
     return;
   }
 
-  /* ---- 3) Replenish exactly as many essentials as were culled (ignore caps for essentials) ---- */
-  for (let i = 0; i < essentialCulled; i++) {
-    const created = spawnOneAtTopPreferOffscreen(scene, player, h, reach, camTop);
-    // Optionals between the new top and previous top (stay off-screen if possible)
-    if (created?.main && created.prevTop) {
-      spawnLateralOptionalsBetween(scene, player, created.prevTop, created.main, h, reach, {
-        offscreenY: camTop - OPTIONAL_OFFSCREEN_BUFFER
-      });
-    }
-  }
-
-  /* ---- 4) Small recycle: gently reposition the last-landed platform into a fresh band spot ---- */
+  /* ---- 3) Small recycle: gently reposition the last-landed platform into a fresh band spot ---- */
   const keep = [];
   scene.platforms.children.iterate(p => {
     if (!p) return;
@@ -454,7 +463,7 @@ function countOptionalInView(scene) {
 }
 
 function currentInView(scene, camTop, camBot) {
-  return scene.platforms.getChildren().filter(p => p && p.y >= camTop && p.y <= camBot).length;
+  return scene.platforms.getChildren().filter(p => p && p.y >= camTop && p <= camBot).length;
 }
 
 function getNearestPlatformAbove(scene, y) {
