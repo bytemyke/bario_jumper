@@ -17,6 +17,7 @@ export default class UpgradeManager {
       null,
       this
     );
+    this.spawnMushroom();
 
     // Spawn timer
     this.scene.time.addEvent({
@@ -66,7 +67,7 @@ export default class UpgradeManager {
     this.player.setVelocity(0, 0);
     upgrade.destroy();
 
-    this.player.changeMode(this.scene, newMode);
+    this.player.changeMode(newMode);
   }
 
   handleDamage() {

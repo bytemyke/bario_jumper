@@ -47,7 +47,7 @@ export function createMap(scene, player, { debug = false } = {}) {
   }
 
   background.setDepth(-1);
-  background.setAlpha(0.75);
+  // background.setAlpha(0.75);
   ground.setDepth(1);
   leftWall.setDepth(1);
   rightWall.setDepth(1);

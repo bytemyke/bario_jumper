@@ -30,16 +30,17 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
   // ====== MODE HANDLING ======
   changeMode(newMode) {
+    console.log(this.isTransforming);
     if (this.isTransforming || newMode === this.current_mode) return;
-
+    console.log(newMode);
     if (newMode === "big") {
       this.isTransforming = true;
+      console.log(this.isTransforming);
       this.body.setVelocity(0, 0);
       this.body.allowGravity = false;
       this.anims.stop();
-      this.scene.physics.world.pause();
-
-      this.setTexture("mini_to_big_one", 0);
+      this.setTexture("mini_to_big", 0);
+      console.log(this.texture);
       this.play("transform_mini");
     }
   }
@@ -88,6 +89,8 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     a.create({
       key: "jump_mini",
       frames: [{ key: "mini_player", frame: 2 }],
+      frameRate: 1,
+      repeat: 0,
     });
 
     // big
@@ -101,6 +104,8 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     a.create({
       key: "jump_big",
       frames: [{ key: "big_player", frame: 2 }],
+      frameRate: 1,
+      repeat: 0,
     });
 
     // death

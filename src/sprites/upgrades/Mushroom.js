@@ -25,9 +25,9 @@ export default class Mushroom extends Phaser.Physics.Arcade.Sprite {
     this.setVelocityY(0);
     this.setBounce(0.2);
     this.anims.play("mushroom_idle");
-    setTimeout(() => {
-      this.body.allowGravity = true;
-      this.setVelocityY(100); // start falling
-    }, 20000);
+    // setTimeout(() => {
+    //   this.body.allowGravity = true;
+    //   this.setVelocityY(100); // start falling
+    // }, 20000);
   }
 }
