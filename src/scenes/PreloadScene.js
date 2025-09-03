@@ -15,12 +15,6 @@ export default class PreloadScene extends Phaser.Scene {
       frameHeight: 17,
     });
 
-    // ✨ Alias: keep legacy code that uses the "player" key working
-    this.load.spritesheet("player", "cco/bario_mini.png", {
-      frameWidth: 18,
-      frameHeight: 17,
-    });
-
     this.load.spritesheet("big_player", "cco/bario_big.png", {
       frameWidth: 18,
       frameHeight: 33,
@@ -41,7 +35,6 @@ export default class PreloadScene extends Phaser.Scene {
     );
 
     this.load.image("castle_platform", "cartoon/castle_platform.png");
-    // ✨ Add naming-convention alias (TileType_TileAmount)
     this.load.image("basic_3", "cartoon/castle_platform.png");
     this.load.image("basic_1", "cartoon/basic_1.png");
     // this.load.spritesheet("enemy", "cartoon/mushroom_walk.png", {
@@ -67,52 +60,7 @@ export default class PreloadScene extends Phaser.Scene {
   }
 
   create() {
-    // 🔧 Ensure core animations exist globally before any sprite tries to play them
-    ensurePlayerAnims(this);
-
     console.log("PreloadScene");
     this.scene.start("MenuScene");
-  }
-}
-
-/** Define 'idle', 'run', 'jump' for the 'player' sheet (safe if already exist). */
-function ensurePlayerAnims(scene) {
-  const anims = scene.anims;
-  const sheetKey = "player";
-
-  // Determine the available frame count (clamp ranges to be safe)
-  const tex = scene.textures.get(sheetKey);
-  const frameNames = tex ? tex.getFrameNames() : [];
-  const lastIndex = Math.max(0, frameNames.length - 1);
-
-  const clamp = (i) => Math.max(0, Math.min(i, lastIndex));
-  const frames = (start, end) =>
-    anims.generateFrameNumbers(sheetKey, { start: clamp(start), end: clamp(end) });
-
-  if (!anims.exists("idle")) {
-    anims.create({
-      key: "idle",
-      frames: frames(0, 0),
-      frameRate: 1,
-      repeat: -1,
-    });
-  }
-
-  if (!anims.exists("run")) {
-    anims.create({
-      key: "run",
-      frames: frames(1, 4),
-      frameRate: 10,
-      repeat: -1,
-    });
-  }
-
-  if (!anims.exists("jump")) {
-    anims.create({
-      key: "jump",
-      frames: frames(5, 5),
-      frameRate: 1,
-      repeat: -1,
-    });
   }
 }
