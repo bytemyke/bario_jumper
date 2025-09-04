@@ -1,9 +1,11 @@
 // Decide whether to attach a spring to a just-created platform and place it.
 import Spring from "../sprites/Spring";
 //  Global spawn tuning — lower odds to make springs rarer, and cap how many can be visible at once.
-const SPRING_CHANCE_ESSENTIAL = 0.25;  // was ~0.25; lower number => fewer springs on essential rungs
-const SPRING_CHANCE_OPTIONAL  = 0.15;  // was ~0.15; lower number => fewer springs on optional rungs
-const SPRING_MAX_IN_VIEW      = 5;     // hard cap: never show more than this many springs on screen
+const SPRING_CHANCE_ESSENTIAL = 0.45;  // was ~0.25; lower number => fewer springs on essential rungs
+const SPRING_CHANCE_OPTIONAL  = 0.25;  // was ~0.15; lower number => fewer springs on optional rungs
+const SPRING_MAX_IN_VIEW      = 8;     // hard cap: never show more than this many springs on screen
+const SPRING_MIN_VERTICAL_GAP = 10; // try 120–180 for fewer, 80–100 for more
+
 
 /**
  * maybeAttachSpring(scene, player, platform, { isEssential, prevEssential })
@@ -20,6 +22,16 @@ export function maybeAttachSpring(scene, player, platform, opts = {}) {
 
   // Avoid double-placing on the same platform.
   if (platform.spring) return;
+  // If we already have too many springs visible, skip this one.
+const camTop = scene.cameras.main.scrollY;
+const camBot = camTop + scene.scale.height;
+const inViewCount = (scene.springs?.getChildren?.() || []).filter(s => s && s.y >= camTop && s.y <= camBot).length;
+if (inViewCount >= SPRING_MAX_IN_VIEW) return;
+// Chance gate — essentials and optionals get different odds.
+const chance = opts.isEssential ? SPRING_CHANCE_ESSENTIAL : SPRING_CHANCE_OPTIONAL;
+if (Math.random() > chance) return;
+
+
 
   // Decide X offset over the platform: middle or 'far' from previous essential.
   const width = platform.displayWidth || platform.body?.width || 48;
@@ -42,6 +54,9 @@ export function maybeAttachSpring(scene, player, platform, opts = {}) {
   // Create & store.
   const spring = new Spring(scene, x, y);
   platform.spring = spring;
+// Keep springs in a group so we can count what's on screen for the cap.
+if (!scene.springs) scene.springs = scene.physics.add.staticGroup();
+scene.springs.add(spring);
 
   // Collider: bounce only when player is falling onto it (one-way feel).
   scene.physics.add.overlap(scene.player || player, spring, (plr, spr) => {
