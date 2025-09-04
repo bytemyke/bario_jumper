@@ -47,6 +47,15 @@ export default class PreloadScene extends Phaser.Scene {
       frameHeight: 331,
     });
 
+    // Load the 3-frame sheet for spring so we can build the spring animation later.
+this.load.spritesheet("green_spring", "cartoon/green_spring.png", {
+  frameWidth: 16,
+  frameHeight: 24,
+});
+const t = this.textures.get("green_spring");
+console.log("[green_spring] exists:", !!t, "frames:", t?.frameTotal);
+
+
     //     // Load tileset image
     // this.load.image("tiles", "assets/tileset.png");
 

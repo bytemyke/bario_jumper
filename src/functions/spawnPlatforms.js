@@ -1,6 +1,8 @@
 // src/functions/spawnPlatforms.js
 import Phaser from "phaser";
 import Platform from "../sprites/Platform";
+import { maybeAttachSpring } from "../functions/spawnSprings";
+
 
 /* ---------------- Tunables (density & difficulty) ---------------- */
 
@@ -81,9 +83,15 @@ export function initializePlatforms(scene, player) {
   scene._hasLeftGround = false;
   scene._seeded = false;
 
-  scene.physics.add.collider(player, scene.platforms, (plr, plat) => {
-    scene._pendingLandedPlatform = plat || null;
-  });
+ // Cam added: Only allow platform collision resolution when NOT springing; this makes platforms pass-through in spring mode.
+scene.physics.add.collider(
+  player,
+  scene.platforms,
+  (plr, plat) => { scene._pendingLandedPlatform = plat || null; }, // collide callback
+  (plr, plat) => { return !player._springActive; },                 // process callback (skip when springing)
+  scene
+);
+
 
   scene.events.on("postupdate", () => {
     const b = player?.body;
@@ -194,6 +202,9 @@ function seedFullScreen(scene, player, h, reach, camTop, camBot, bandTop, bandBo
   if (!placedFirst) { p1.destroy(); return; }
   p1.isEssential = true;
   p1.refreshBody?.();
+// Cam added: Evaluate spring eligibility for the very first essential platform.
+maybeAttachSpring(scene, player, p1, { isEssential: true, prevEssential: null });
+
 
   let prev = p1;
   let safetyCounter = 0;
@@ -223,6 +234,8 @@ function seedFullScreen(scene, player, h, reach, camTop, camBot, bandTop, bandBo
       if (!canPlaceWithSpacing(scene, x, y, next, player, relax)) continue;
 
       next.setPosition(x, y);
+      next.isEssential = true;
+      next.refreshBody?.();
       ok = true;
       break;
     }
@@ -230,8 +243,11 @@ function seedFullScreen(scene, player, h, reach, camTop, camBot, bandTop, bandBo
     if (ok) {
       next.isEssential = true;
       next.refreshBody?.();
+     // For each new essential rung, evaluate spring eligibility and place it relative to the previous essential for “far/middle” logic.
+    maybeAttachSpring(scene, player, next, { isEssential: true, prevEssential: prev });
 
-      // NEW: try to place up to 2 lateral optionals (left/right lanes) outside the essential corridor
+
+      // try to place up to 2 lateral optionals (left/right lanes) outside the essential corridor
       spawnLateralOptionalsBetween(scene, player, next, prev, h, reach);
 
       prev = next;
@@ -251,6 +267,8 @@ function seedFullScreen(scene, player, h, reach, camTop, camBot, bandTop, bandBo
     const y = topLimit;
     const minX = Math.max(X_PADDING, prev.x - reach);
     const maxX = Math.min(scene.scale.width - X_PADDING, prev.x + reach);
+    //  Cache the prior essential rung so the new topLimit rung can select the “far” side from it when placing a spring.
+const prevBefore = prev;
 
     let ok = false;
     for (let t = 1; t <= MAX_TRIES; t++) {
@@ -264,6 +282,9 @@ function seedFullScreen(scene, player, h, reach, camTop, camBot, bandTop, bandBo
       break;
     }
     if (ok) { last.isEssential = true; last.refreshBody?.(); prev = last; } else { last.destroy(); }
+    //  The snapped essential rung is finalized—now run spring logic using the cached previous essential to respect far/middle placement.
+maybeAttachSpring(scene, player, last, { isEssential: true, prevEssential: prevBefore });
+
   }
 
   // Stage B: prebuild a short off-screen headroom stack
@@ -294,6 +315,9 @@ function seedFullScreen(scene, player, h, reach, camTop, camBot, bandTop, bandBo
     if (ok) {
       next.isEssential = true;
       next.refreshBody?.();
+      // For headroom essentials placed above the camera, evaluate and attach springs so newly scrolled-in rungs can have springs too.
+    maybeAttachSpring(scene, player, next, { isEssential: true, prevEssential: prev });
+
       prev = next;
     } else {
       next.destroy();
@@ -332,6 +356,9 @@ function spawnOneAtTopPreferOffscreen(scene, player, h, reach, camTop) {
     p.setPosition(x, y);
     p.isEssential = true;
     p.refreshBody?.();
+    // When we add a new essential at the top, consider attaching a spring using the last top essential as the “previous” for far/middle choice.
+    maybeAttachSpring(scene, player, p, { isEssential: true, prevEssential: prevTop });
+
     return { main: p, prevTop };
   }
   p.destroy();
@@ -434,6 +461,9 @@ function placeOptionalOnSide(scene, player, upper, lower, h, reach, targetSide, 
 
     p.setPosition(x, proposedY);
     p.refreshBody?.();
+    // Even for optional rungs, evaluate spring eligibility (policy allows it but placement isn’t constrained by previous essentials).
+    maybeAttachSpring(scene, player, p, { isEssential: false });
+
     return true;
   }
 
