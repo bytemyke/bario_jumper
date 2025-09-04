@@ -34,8 +34,8 @@ export default class PreloadScene extends Phaser.Scene {
       }
     );
 
-    this.load.image("castle_platform", "cartoon/castle_platform.png");
-    this.load.image("basic_1", "cartoon/basic_1.png");
+    this.load.image("basic_3", "cartoon/platforms/basic_3.png");
+    this.load.image("basic_1", "cartoon/platforms/basic_1.png");
     // this.load.spritesheet("enemy", "cartoon/mushroom_walk.png", {
     //   frameWidth: 16,
     //   frameHeight: 16,
@@ -48,7 +48,7 @@ export default class PreloadScene extends Phaser.Scene {
     });
 
     // Load the 3-frame sheet for spring so we can build the spring animation later.
-this.load.spritesheet("green_spring", "cartoon/green_spring.png", {
+this.load.spritesheet("green_spring", "cartoon/sprites/green_spring.png", {
   frameWidth: 16,
   frameHeight: 24,
 });

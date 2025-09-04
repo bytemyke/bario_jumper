@@ -26,8 +26,6 @@ export default class GameScene extends Phaser.Scene {
   frameRate: 10,
   repeat: -1
 });
-    console.log("GameScene");
-
     this.score = 0;
 
     const gameWidth = this.sys.game.config.width;
@@ -98,7 +96,6 @@ export default class GameScene extends Phaser.Scene {
     this.player.update();
     // Compute where we'd like the camera if it were allowed to move both ways
     const target = this.player.y - this.followOffsetY;
-    console.log(this.platforms);
     spawnPlatforms(this, this.player);
     // Only allow the camera to move UP (remember: smaller scrollY = higher)
     if (target < this.minScrollY) {
@@ -127,22 +124,7 @@ export default class GameScene extends Phaser.Scene {
     const coin = this.coins.create(x, y, "coin", 0).setDepth(10).setScale(0.1);
     coin.play("coinSpin");
     coin.body.setAllowGravity(false);
-    console.log(coin.x, coin.y);
-    console.log("coin size:", coin.body.width, coin.body.height);
-    console.log(
-      "player size:",
-      this.player.body.width,
-      this.player.body.height
-    );
-    console.log(
-      "spawned coin at",
-      x,
-      y,
-      "playerY",
-      this.player.y,
-      "cameraY",
-      this.cameras.main.scrollY
-    );
+
   }
 
   spawnEnemy() {

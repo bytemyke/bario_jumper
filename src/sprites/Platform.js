@@ -10,7 +10,7 @@ import PLATFORM_TYPES from "../data/platformTypes.json";
 function resolveTextureKey(row) {
   if (row.type === "basic") {
     if (row.blocks === 1) return "basic_1";
-    if (row.blocks === 3) return "castle_platform";
+    if (row.blocks === 3) return "basic_3";
   }
   // Fallback (shouldn’t be hit with current data)
   return "basic_1";
