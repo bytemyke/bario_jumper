@@ -3,11 +3,10 @@ import Phaser from "phaser";
 export default class Player extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y) {
     super(scene, x, y, "mini_player");
-
     scene.add.existing(this);
     scene.physics.add.existing(this);
-
     this.setDepth(1);
+    this.scene = scene;
 
     // Cam added: Give this Player to scene-wide spring events so we can start/stop its spring animation/state.
 const onSpringStart = ({ player /*, spring */ }) => {
@@ -238,13 +237,15 @@ if (this._springActive) {
 
     const onGround = this.body.blocked.down;
     const { A, D, W } = this.cursors;
-
+    let left = A.isDown || this.scene.controls?.left;
+    let right = D.isDown || this.scene.controls?.right;
+    let up = W.isDown || this.scene.controls?.up;
     // movement
-    if (A.isDown) {
+    if (left) {
       this.setVelocityX(-this.moveSpeed);
       this.flipX = true;
       if (onGround) this.play(`run_${this.current_mode}`, true);
-    } else if (D.isDown) {
+    } else if (right) {
       this.setVelocityX(this.moveSpeed);
       this.flipX = false;
       if (onGround) this.play(`run_${this.current_mode}`, true);
@@ -254,7 +255,7 @@ if (this._springActive) {
     }
 
     // jump
-    if (W.isDown && onGround) {
+    if (up && onGround) {
       this.setVelocityY(this.jumpSpeed);
     }
 
