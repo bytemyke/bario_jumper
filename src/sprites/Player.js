@@ -9,7 +9,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
     this.setDepth(1);
 
-    // Cam added: Subscribe this Player to scene-wide spring events so we can start/stop its spring animation/state.
+    // Cam added: Give this Player to scene-wide spring events so we can start/stop its spring animation/state.
 const onSpringStart = ({ player /*, spring */ }) => {
   if (player !== this) return;          // only react if THIS player triggered the spring
   // start player spring anim/state (you’ll wire your animation here)
@@ -188,6 +188,11 @@ enterSpringMode(opts = {}) {
   this.setVelocityY(boostVy);
 
   this._springActive = true;
+// Tell anyone listening that THIS player just entered spring mode (easy animation hook).
+  this.emit("spring:start"); 
+//Also publish on the scene for scene-level subscribers.
+  this.scene.events.emit("player:spring:start", { player: this });
+
 }
 
 /**

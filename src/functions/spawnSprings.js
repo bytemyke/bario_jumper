@@ -47,7 +47,7 @@ if (Math.random() > chance) return;
     localX = 0;
   }
 
-  // PSEUDOCODE: Use the platform’s *top* (physics body top or visual top) so the spring sits ON the surface, not inside the block.
+  // Use the platform’s *top* (physics body top or visual top) so the spring sits ON the surface, not inside the block.
   const x = platform.x + localX;
   const platTop =
   (platform.body && typeof platform.body.top === "number")
@@ -78,6 +78,8 @@ scene.springs.add(spring);
 
     // Play the visual bounce; when done, signal end hook.
     spr.playBounce(() => {
+        plr.setVelocityY(-950);         // (or scene-configured value)
+  spr.setFrame(0);
       scene.events.emit("spring:end", { player: plr, spring: spr });
     });
 
