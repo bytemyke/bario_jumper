@@ -47,7 +47,7 @@ export default class PreloadScene extends Phaser.Scene {
       frameHeight: 331,
     });
 
-    // PSEUDOCODE: Load the 3-frame sheet (16×24 per frame) so we can build the spring animation later.
+    // Load the 3-frame sheet for spring so we can build the spring animation later.
 this.load.spritesheet("green_spring", "cartoon/green_spring.png", {
   frameWidth: 16,
   frameHeight: 24,

@@ -9,7 +9,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
     this.setDepth(1);
 
-    // PSEUDOCODE: Subscribe this Player to scene-wide spring events so we can start/stop its spring animation/state.
+    // Cam added: Subscribe this Player to scene-wide spring events so we can start/stop its spring animation/state.
 const onSpringStart = ({ player /*, spring */ }) => {
   if (player !== this) return;          // only react if THIS player triggered the spring
   // start player spring anim/state (you’ll wire your animation here)
@@ -47,7 +47,7 @@ scene.events.on("spring:end",   onSpringEnd);
 
     // listen for anim completion
     this.on("animationcomplete", this.onAnimComplete, this);
-    // PSEUDOCODE: Listen once for spring start/end to control spring-mode and animation gating.
+    // Cam added: Listen once for spring start/end to control spring-mode and animation gating.
 if (!this._boundSpringListeners) {
   this._onSpringStart = ({ player, spring }) => {
     if (player !== this) return;
@@ -61,7 +61,7 @@ if (!this._boundSpringListeners) {
   this._onSpringEnd = ({ player, spring }) => {
     if (player !== this) return;
     this._springAnimPlaying = false;           // animation finished; don't exit yet (forgiving)
-    // PSEUDOCODE: Actual exit happens in update() once we’re safely above the platform.
+    // Actual exit happens in update() once we’re safely above the platform.
   };
 
   this.scene.events.on("spring:start", this._onSpringStart);
@@ -73,10 +73,9 @@ if (!this._boundSpringListeners) {
     this.scene.events.off("spring:end",   this._onSpringEnd);
     this._boundSpringListeners = false;
   });
-}
-
-    
+}   
   }
+  //End of code block cam added to account for springs
 
   // ====== MODE HANDLING ======
   changeMode(newMode) {
@@ -160,8 +159,8 @@ if (!this._boundSpringListeners) {
     });
   }
 
-  // Provide a clear API to start/stop spring mode—boost upward, disable collisions to pass through everything, and emit events so your animation system can hook in.
-  // Spring MODE API (called by Spring.js) ======
+  // ====== SPRING MODE HANDLING ======
+  //(called by Spring.js)
 
 /**
   Enter spring mode: launches the player upward and disables ALL collisions
@@ -210,7 +209,7 @@ exitSpringMode() {
   this._springActive = false;
   this._springSourceY = null;
 }
-
+//End of what cam added to handle springs
 
   // ====== GAME LOOP ======
   update() {
@@ -261,6 +260,8 @@ if (this._springActive) {
   }
 
   die() {
+    // attempting to make sure the player doesn't die in spring mode
+    if (this._springActive) return;
     this.setTint(0xff0000).play("die");
   }
 }

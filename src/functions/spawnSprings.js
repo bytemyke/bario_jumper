@@ -47,9 +47,14 @@ if (Math.random() > chance) return;
     localX = 0;
   }
 
-  //  Compute world position where the spring sits flush on top of the platform.
+  // PSEUDOCODE: Use the platform’s *top* (physics body top or visual top) so the spring sits ON the surface, not inside the block.
   const x = platform.x + localX;
-  const y = platform.y; // our Spring uses origin (0.5, 1), so Y = top surface
+  const platTop =
+  (platform.body && typeof platform.body.top === "number")
+    ? platform.body.top
+    : (platform.y - ((platform.displayHeight || platform.body?.height || 0) / 2));
+  const y = Math.round(platTop); // align to whole pixels to avoid half-pixel bleed
+
 
   // Create & store.
   const spring = new Spring(scene, x, y);

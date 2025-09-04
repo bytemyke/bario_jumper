@@ -1,16 +1,16 @@
-// PSEUDOCODE: A lightweight sprite class that knows how to play its own bounce animation.
+// A lightweight sprite class that knows how to play its own bounce animation.
 import Phaser from "phaser";
 
 export default class Spring extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y) {
-    // PSEUDOCODE: Use our new sheet; default to frame 0 (idle/compressed).
+    // Use our new sheet; default to frame 0 (idle/compressed).
     super(scene, x, y, "green_spring", 0);
 
-    // PSEUDOCODE: Add to scene/physics and make it static-ish like platforms.
+    // Add to scene/physics and make it static-ish like platforms.
     scene.add.existing(this);
     scene.physics.add.existing(this, true); // immovable/static body
 
-    // PSEUDOCODE: Create the animation once, only if the sheet exists and has frames.
+    // Create the animation once, only if the sheet exists and has frames.
 const SPRING_ANIM_KEY = "spring_bounce";
 const tex = scene.textures.get("green_spring");
 if (!tex || tex.frameTotal < 3) {
@@ -27,7 +27,7 @@ if (!tex || tex.frameTotal < 3) {
 
     this.setOrigin(0.5, 1);                 // sit on the platform top
 
-    // PSEUDOCODE: Create the 3-frame animation once (idempotent).
+    // Create the 3-frame animation once (idempotent).
     if (!scene.anims.exists("spring_bounce")) {
       scene.anims.create({
         key: "spring_bounce",
@@ -38,10 +38,10 @@ if (!tex || tex.frameTotal < 3) {
     }
   }
 
-  // PSEUDOCODE: Public method to play bounce and signal hooks for Player’s spring-mode animation.
+  // Public method to play bounce and signal hooks for Player’s spring-mode animation.
   playBounce(onComplete) {
-    // PSEUDOCODE: Only play if the animation exists; avoid the Phaser "duration" crash.
-// PSEUDOCODE: Only play if the animation exists and has frames; otherwise skip (no crash).
+    // Only play if the animation exists; avoid the Phaser "duration" crash.
+// Only play if the animation exists and has frames; otherwise skip (no crash).
 const k = "spring_bounce";
 const a = this.scene.anims.get(k);
 if (!a || !a.frames || a.frames.length === 0) {
@@ -50,6 +50,14 @@ if (!a || !a.frames || a.frames.length === 0) {
   return;
 }
 this.anims.play(k);
+
+// When the bounce animation finishes (player is already airborne), put the spring back to its upright (frame 0) state.
+this.anims.play(k);
+this.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+  this.setFrame(0);              // <-- reset to upright so it looks unused if landed again
+  if (onComplete) onComplete();  // keep your existing callback behavior
+});
+
 
     this.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
       if (onComplete) onComplete();

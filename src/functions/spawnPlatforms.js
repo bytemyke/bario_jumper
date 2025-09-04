@@ -202,7 +202,7 @@ function seedFullScreen(scene, player, h, reach, camTop, camBot, bandTop, bandBo
   if (!placedFirst) { p1.destroy(); return; }
   p1.isEssential = true;
   p1.refreshBody?.();
-// PSEUDOCODE: Evaluate spring eligibility for the very first essential platform.
+// Cam added: Evaluate spring eligibility for the very first essential platform.
 maybeAttachSpring(scene, player, p1, { isEssential: true, prevEssential: null });
 
 
@@ -247,7 +247,7 @@ maybeAttachSpring(scene, player, p1, { isEssential: true, prevEssential: null })
     maybeAttachSpring(scene, player, next, { isEssential: true, prevEssential: prev });
 
 
-      // NEW: try to place up to 2 lateral optionals (left/right lanes) outside the essential corridor
+      // try to place up to 2 lateral optionals (left/right lanes) outside the essential corridor
       spawnLateralOptionalsBetween(scene, player, next, prev, h, reach);
 
       prev = next;
