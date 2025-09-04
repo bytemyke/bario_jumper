@@ -1,5 +1,9 @@
-// PSEUDOCODE: Decide whether to attach a spring to a just-created platform and place it.
+// Decide whether to attach a spring to a just-created platform and place it.
 import Spring from "../sprites/Spring";
+//  Global spawn tuning — lower odds to make springs rarer, and cap how many can be visible at once.
+const SPRING_CHANCE_ESSENTIAL = 0.25;  // was ~0.25; lower number => fewer springs on essential rungs
+const SPRING_CHANCE_OPTIONAL  = 0.15;  // was ~0.15; lower number => fewer springs on optional rungs
+const SPRING_MAX_IN_VIEW      = 5;     // hard cap: never show more than this many springs on screen
 
 /**
  * maybeAttachSpring(scene, player, platform, { isEssential, prevEssential })
@@ -9,15 +13,15 @@ import Spring from "../sprites/Spring";
  *  - Optionals may get springs too, but without far/middle constraint.
  */
 export function maybeAttachSpring(scene, player, platform, opts = {}) {
-  // PSEUDOCODE: Enforce "basic 3-block only".
+  //  Enforce "basic 3-block only".
   const isThreeBlockBasic =
     (platform?.isBasic === true) && ((platform?.blocks ?? 1) === 3);
   if (!isThreeBlockBasic) return;
 
-  // PSEUDOCODE: Avoid double-placing on the same platform.
+  // Avoid double-placing on the same platform.
   if (platform.spring) return;
 
-  // PSEUDOCODE: Decide X offset over the platform: middle or 'far' from previous essential.
+  // Decide X offset over the platform: middle or 'far' from previous essential.
   const width = platform.displayWidth || platform.body?.width || 48;
   let localX = 0; // center by default
 
@@ -31,15 +35,15 @@ export function maybeAttachSpring(scene, player, platform, opts = {}) {
     localX = 0;
   }
 
-  // PSEUDOCODE: Compute world position where the spring sits flush on top of the platform.
+  //  Compute world position where the spring sits flush on top of the platform.
   const x = platform.x + localX;
   const y = platform.y; // our Spring uses origin (0.5, 1), so Y = top surface
 
-  // PSEUDOCODE: Create & store.
+  // Create & store.
   const spring = new Spring(scene, x, y);
   platform.spring = spring;
 
-  // PSEUDOCODE: Collider: bounce only when player is falling onto it (one-way feel).
+  // Collider: bounce only when player is falling onto it (one-way feel).
   scene.physics.add.overlap(scene.player || player, spring, (plr, spr) => {
     const body = plr.body;
     if (!body) return;
@@ -49,15 +53,15 @@ export function maybeAttachSpring(scene, player, platform, opts = {}) {
     const aboveTop   = (plr.y <= spr.y + 2);
     if (!descending || !aboveTop) return;
 
-    // PSEUDOCODE: Fire hooks so Player can switch to “spring mode” animation externally.
+    //  Fire hooks so Player can switch to “spring mode” animation externally.
     scene.events.emit("spring:start", { player: plr, spring: spr });
 
-    // PSEUDOCODE: Play the visual bounce; when done, signal end hook.
+    // Play the visual bounce; when done, signal end hook.
     spr.playBounce(() => {
       scene.events.emit("spring:end", { player: plr, spring: spr });
     });
 
-    // PSEUDOCODE: Apply a strong vertical launch — actual “ignore-platforms” logic should live in Player.
+    //  Apply a strong vertical launch — actual “ignore-platforms” logic should live in Player.
     body.setVelocityY(-900);
   }, null, scene);
 }
