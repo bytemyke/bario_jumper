@@ -106,10 +106,27 @@ scene.physics.add.collider(
       if (!scene._initialLandingDone) {
         if (scene._hasLeftGround) {
           scene._initialLandingDone = true;
+          // Cam added: Trigger falling behavior if we landed on a falling_3 platform
+          if (
+            scene._pendingLandedPlatform &&
+            scene._pendingLandedPlatform.typeKey === "falling_3" &&
+            typeof scene._pendingLandedPlatform.falling === "function"
+          ) {
+            scene._pendingLandedPlatform.falling();
+          }
+
           spawnPlatforms(scene, player, scene._pendingLandedPlatform);
           scene._pendingLandedPlatform = null;
         }
       } else {
+        if (
+          scene._pendingLandedPlatform &&
+          scene._pendingLandedPlatform.typeKey === "falling_3" &&
+          typeof scene._pendingLandedPlatform.falling === "function"
+        ) {
+          scene._pendingLandedPlatform.falling();
+        }
+        //end of falling platform guard that calls falling before each spawnPlatforms call
         spawnPlatforms(scene, player, scene._pendingLandedPlatform);
         scene._pendingLandedPlatform = null;
       }

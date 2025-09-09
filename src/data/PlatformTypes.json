@@ -1,4 +1,5 @@
 [
-  { "type": "basic", "spawnPercent": 50, "blocks": 1 },
-  { "type": "basic", "spawnPercent": 50, "blocks": 3 }
+  { "type": "basic", "spawnPercent": 42.5, "blocks": 1 },
+  { "type": "basic", "spawnPercent": 42.5, "blocks": 3 },
+  { "type": "falling", "spawnPercent": 15, "blocks": 3 }
 ]
