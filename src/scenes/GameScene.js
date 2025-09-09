@@ -2,8 +2,11 @@ import Phaser from "phaser";
 import Platform from "../sprites/Platform";
 import Enemy from "../sprites/Enemy";
 import Player from "../sprites/Player";
-import {spawnPlatforms, initializePlatforms}  from "../functions/spawnPlatforms"; 
-import { createMap } from "../functions/createMap";
+import {
+  spawnPlatforms,
+  initializePlatforms,
+} from "../functions/spawnPlatforms";
+import { createMap, updateMap } from "../functions/createMap";
 import UpgradeManager from "../classes/UpgradeManager";
 
 export default class GameScene extends Phaser.Scene {
@@ -11,23 +14,26 @@ export default class GameScene extends Phaser.Scene {
     super("GameScene");
     this.score = 0;
   }
- 
+
   create() {
+    const isMobile =
+      this.sys.game.device.os.android || this.sys.game.device.os.iOS;
+    if (isMobile) {
+      this.createMobileControls();
+    }
     this.anims.create({
       key: "coinSpin",
       frames: this.anims.generateFrameNumbers("coin", { start: 0, end: 19 }),
       frameRate: 10,
       repeat: -1,
     });
-    
-    this.anims.create({
-  key: "coinSpin",
-  frames: this.anims.generateFrameNumbers("coin", { start: 0, end: 19 }),
-  frameRate: 10,
-  repeat: -1
-});
-    console.log("GameScene");
 
+    this.anims.create({
+      key: "coinSpin",
+      frames: this.anims.generateFrameNumbers("coin", { start: 0, end: 19 }),
+      frameRate: 10,
+      repeat: -1,
+    });
     this.score = 0;
 
     const gameWidth = this.sys.game.config.width;
@@ -41,14 +47,12 @@ export default class GameScene extends Phaser.Scene {
       .setScrollFactor(0);
 
     this.player = new Player(this, gameWidth / 2, gameHeight * 0.75);
-      
+
     this.cursors = this.input.keyboard.addKeys("W,A,S,D");
 
     this.coins = this.physics.add.group();
     this.enemies = this.physics.add.group();
 
-
-  
     this.physics.add.overlap(
       this.player,
       this.coins,
@@ -82,8 +86,8 @@ export default class GameScene extends Phaser.Scene {
 
     this.highestCameraY = this.cameras.main.scrollY;
     //map creation
-    this.map = createMap(this, this.player);
-    
+    this.mapData = createMap(this, this.player);
+
     this.upgrades = new UpgradeManager(this, this.player, this.platforms);
 
     // enemy collisions
@@ -95,16 +99,18 @@ export default class GameScene extends Phaser.Scene {
   }
 
   update() {
+    // this.mapData.background.tilePositionY = this.cameras.main.scrollY;
+    updateMap(this.mapData, this.cameras.main);
     this.player.update();
     // Compute where we'd like the camera if it were allowed to move both ways
     const target = this.player.y - this.followOffsetY;
-    console.log(this.platforms);
     spawnPlatforms(this, this.player);
     // Only allow the camera to move UP (remember: smaller scrollY = higher)
     if (target < this.minScrollY) {
       this.minScrollY = target;
     }
     this.cameras.main.scrollY = this.minScrollY; // never increases
+
   }
 
   collectCoin(player, coin) {
@@ -127,22 +133,6 @@ export default class GameScene extends Phaser.Scene {
     const coin = this.coins.create(x, y, "coin", 0).setDepth(10).setScale(0.1);
     coin.play("coinSpin");
     coin.body.setAllowGravity(false);
-    console.log(coin.x, coin.y);
-    console.log("coin size:", coin.body.width, coin.body.height);
-    console.log(
-      "player size:",
-      this.player.body.width,
-      this.player.body.height
-    );
-    console.log(
-      "spawned coin at",
-      x,
-      y,
-      "playerY",
-      this.player.y,
-      "cameraY",
-      this.cameras.main.scrollY
-    );
   }
 
   spawnEnemy() {
@@ -150,5 +140,35 @@ export default class GameScene extends Phaser.Scene {
     const x = Phaser.Math.Between(50, gameWidth - 50);
     const y = this.cameras.main.scrollY - 50;
     new Enemy(this, x, y);
+  }  
+  createMobileControls() {
+    const { width, height } = this.sys.game.canvas;
+
+    // Track control states
+    this.controls = {
+      left: false,
+      right: false,
+      jump: false,
+    };
+
+    // Create buttons
+    this.leftButton = this.add
+      .rectangle(80, height - 80, 100, 100, 0xFFFFFF, 0.3)
+      .setInteractive();
+    this.rightButton = this.add
+      .rectangle(200, height - 80, 100, 100, 0xFFFFFF, 0.3)
+      .setInteractive();
+    this.jumpButton = this.add
+      .rectangle(width - 100, height - 80, 120, 100, 0xFFFFFF, 0.3)
+      .setInteractive();
+
+    // Pointer events
+    this.leftButton.on("pointerdown", () => {
+      this.controls.left = true; console.log('left');});
+    this.leftButton.on("pointerup", () => (this.controls.left = false));
+    this.rightButton.on("pointerdown", () => (this.controls.right = true));
+    this.rightButton.on("pointerup", () => (this.controls.right = false));
+    this.jumpButton.on("pointerdown", () => (this.controls.up = true));
+    this.jumpButton.on("pointerup", () => (this.controls.up = false));
   }
 }

@@ -34,8 +34,8 @@ export default class PreloadScene extends Phaser.Scene {
       }
     );
 
-    this.load.image("castle_platform", "cartoon/castle_platform.png");
-    this.load.image("basic_1", "cartoon/basic_1.png");
+    this.load.image("basic_3", "cartoon/platforms/basic_3.png");
+    this.load.image("basic_1", "cartoon/platforms/basic_1.png");
     // this.load.spritesheet("enemy", "cartoon/mushroom_walk.png", {
     //   frameWidth: 16,
     //   frameHeight: 16,
@@ -48,13 +48,12 @@ export default class PreloadScene extends Phaser.Scene {
     });
 
     // Load the 3-frame sheet for spring so we can build the spring animation later.
-this.load.spritesheet("green_spring", "cartoon/green_spring.png", {
-  frameWidth: 16,
-  frameHeight: 24,
-});
-const t = this.textures.get("green_spring");
-console.log("[green_spring] exists:", !!t, "frames:", t?.frameTotal);
-
+    this.load.spritesheet("green_spring", "cartoon/sprites/green_spring.png", {
+      frameWidth: 16,
+      frameHeight: 24,
+    });
+    const t = this.textures.get("green_spring");
+    console.log("[green_spring] exists:", !!t, "frames:", t?.frameTotal);
 
     //     // Load tileset image
     // this.load.image("tiles", "assets/tileset.png");
@@ -63,12 +62,11 @@ console.log("[green_spring] exists:", !!t, "frames:", t?.frameTotal);
     // this.load.tilemapTiledJSON("map", "assets/level1.json");
 
     this.load.image("gandcTiles", "cartoon/Ground-and-Ceiling.png");
-
+    this.load.image("backgroundTexture", "cartoon/background_middle.png");
     this.load.tilemapTiledJSON("tilemap", "map.json");
   }
 
   create() {
-    console.log("PreloadScene");
-    this.scene.start("MenuScene");
+    this.scene.start("GameScene");
   }
 }
