@@ -1,49 +1,36 @@
 import Phaser from "phaser";
-import PLATFORM_TYPES from "../data/platformTypes.json";
+import PLATFORM_TYPES from "../data/PlatformTypes.json";
 
-/**
- * Resolves a texture key from a platform data row.
- * For now we only have "basic" type with 1 or 3 blocks.
- * - 1 block  -> "basic_1"
- * - 3 blocks -> "castle_platform"
- */
-function resolveTextureKey(row) {
-  if (row.type === "basic") {
-    if (row.blocks === 1) return "basic_1";
-    if (row.blocks === 3) return "castle_platform";
-  }
-  // Fallback (shouldn’t be hit with current data)
-  return "basic_1";
-}
-
-/** Weighted pick among types that are actually loaded in the texture manager. */
+/** Weighted pick among PlatformTypes rows; build key dynamically and fallback to basic_3 if missing. */
 function pickWeightedRow(scene, explicitKey) {
-  // If explicit textureKey was provided and exists, prefer that (rarely used here)
+  // Use key if supplied and loaded:
   if (explicitKey && scene.textures.exists(explicitKey)) {
-    // Try to find a matching row by key inference (not required for our flow)
-    return null;
+    return { row: null, key: explicitKey };
+  }
+  // Otherwise pick a weighted row from PLATFORM_TYPES data:
+  const rows = (PLATFORM_TYPES && PLATFORM_TYPES.length)
+    ? PLATFORM_TYPES
+    : [{ type: "basic", spawnPercent: 1, blocks: 3 }];
+
+  // Weighted choice
+  const total = rows.reduce((s, r) => s + (r.spawnPercent ?? r.spawnWeight ?? 1), 0);
+  let roll = Math.random() * total;
+  let chosen = rows[0];
+  for (const r of rows) {
+    roll -= (r.spawnPercent ?? r.spawnWeight ?? 1);
+    if (roll <= 0) { chosen = r; break; }
   }
 
-  // Filter to rows whose resolved texture is available
-  const available = PLATFORM_TYPES
-    .map(row => ({ row, key: resolveTextureKey(row) }))
-    .filter(({ key }) => scene.textures.exists(key));
+  // Build desired texture key: row.type + "_" + row.basic (fallback to row.blocks)
+ const suffix = (chosen && (chosen.basic ?? chosen.blocks)) ?? 1; // supports either "basic" or "blocks"
+const desiredKey = `${chosen.type}_${suffix}`;
 
-  if (available.length === 0) {
-    // As a safe fallback, pretend we have a 1-block basic
-    return { row: { type: "basic", spawnPercent: 1, blocks: 1 }, key: "basic_1" };
-  }
 
-  const total = available.reduce((s, it) => s + (it.row.spawnPercent ?? 1), 0);
-  let r = Math.random() * total;
+  // Your requested fallback: if key isn’t loaded, use "basic_3"
+  const key = scene.textures.exists(desiredKey) ? desiredKey : "basic_3";
 
-  for (const it of available) {
-    r -= (it.row.spawnPercent ?? 1);
-    if (r <= 0) return it;
-  }
-  return available[available.length - 1];
+  return { row: chosen, key, logicalKey: desiredKey };
 }
-
 export default class Platform extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y, textureKey = null) {
     const picked = pickWeightedRow(scene, textureKey);
@@ -62,18 +49,41 @@ export default class Platform extends Phaser.Physics.Arcade.Sprite {
     // Attach metadata for spacing / head-clear logic
     const row = picked?.row ?? null;
     this.blocks = row?.blocks ?? (key === "castle_platform" ? 3 : 1);
-    this.typeKey = key;
+    this.typeKey = picked?.logicalKey ?? key;   // tracks the chosen row even if texture fell back
+    this.isFalling = key.startsWith("falling_");
     this.isBasic = true; // current dataset is all "basic"
 
     // Ensure physics body matches the texture frame size
     if (this.body && this.body.setSize) {
       const fw = this.frame?.realWidth ?? this.width;
       const fh = this.frame?.realHeight ?? this.height;
-      this.body.setSize(fw, fh, true);
-      this.refreshBody?.();
+            this.refreshBody?.();
     }
 
     // Register in the scene's platforms group
     scene.platforms.add(this);
+  } 
+
+  /**
+   * Cam added" falling platforms: log, then after a short Phaser delay, destroy this platform.
+   * Guarded so it only runs once even if called multiple times.
+   */
+  falling(delayMs = 400) {
+    if (this._fallingStarted) return;
+    this._fallingStarted = true;
+
+    console.log("falling");
+
+    // Use Phaser’s clock (NOT setTimeout)
+    this.scene.time.delayedCall(
+      delayMs,
+      () => {
+        // Destroy the platform sprite + static body; safely removes it from the group as well
+        this.destroy();
+      },
+      null,
+      this
+    );
   }
-}
+} // <-- end class
+
