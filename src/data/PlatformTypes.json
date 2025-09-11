@@ -2,5 +2,8 @@
   { "type": "basic", "spawnPercent": 42.5, "blocks": 1 },
   { "type": "basic", "spawnPercent": 42.5, "blocks": 3 },
   { "type": "basic", "spawnPercent": 42.5, "blocks": 2 },
+  { "type": "basic", "spawnPercent": 42.5, "blocks": 4 },
+  { "type": "basic", "spawnPercent": 42.5, "blocks": 5 },
+  { "type": "brown", "spawnPercent": 42.5, "blocks": 3 },
   { "type": "falling", "spawnPercent": 15, "blocks": 3 }
 ]

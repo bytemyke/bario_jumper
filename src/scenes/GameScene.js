@@ -16,6 +16,13 @@ export default class GameScene extends Phaser.Scene {
   }
 
   create() {
+    //start background music
+    this.bgm = this.sound.add("bgm", {
+      loop: true,
+      volume: 0.5, // adjust to your liking
+    });
+    this.bgm.play();
+
     const isMobile =
       this.sys.game.device.os.android || this.sys.game.device.os.iOS;
     if (isMobile) {
@@ -110,7 +117,6 @@ export default class GameScene extends Phaser.Scene {
       this.minScrollY = target;
     }
     this.cameras.main.scrollY = this.minScrollY; // never increases
-
   }
 
   collectCoin(player, coin) {
@@ -120,6 +126,9 @@ export default class GameScene extends Phaser.Scene {
   }
 
   hitEnemy() {
+    // this.scene.start("GameOverScene", { score: this.score });
+  }
+  gameOver() {
     this.scene.start("GameOverScene", { score: this.score });
   }
 
@@ -140,7 +149,7 @@ export default class GameScene extends Phaser.Scene {
     const x = Phaser.Math.Between(50, gameWidth - 50);
     const y = this.cameras.main.scrollY - 50;
     new Enemy(this, x, y);
-  }  
+  }
   createMobileControls() {
     const { width, height } = this.sys.game.canvas;
 
@@ -153,18 +162,20 @@ export default class GameScene extends Phaser.Scene {
 
     // Create buttons
     this.leftButton = this.add
-      .rectangle(80, height - 80, 100, 100, 0xFFFFFF, 0.3)
+      .rectangle(80, height - 80, 100, 100, 0xffffff, 0.3)
       .setInteractive();
     this.rightButton = this.add
-      .rectangle(200, height - 80, 100, 100, 0xFFFFFF, 0.3)
+      .rectangle(200, height - 80, 100, 100, 0xffffff, 0.3)
       .setInteractive();
     this.jumpButton = this.add
-      .rectangle(width - 100, height - 80, 120, 100, 0xFFFFFF, 0.3)
+      .rectangle(width - 100, height - 80, 120, 100, 0xffffff, 0.3)
       .setInteractive();
 
     // Pointer events
     this.leftButton.on("pointerdown", () => {
-      this.controls.left = true; console.log('left');});
+      this.controls.left = true;
+      console.log("left");
+    });
     this.leftButton.on("pointerup", () => (this.controls.left = false));
     this.rightButton.on("pointerdown", () => (this.controls.right = true));
     this.rightButton.on("pointerup", () => (this.controls.right = false));
