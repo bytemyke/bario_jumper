@@ -35,7 +35,10 @@ export default class PreloadScene extends Phaser.Scene {
     );
 
     this.load.image("basic_3", "cartoon/platforms/basic_3.png");
+        this.load.image("basic_2", "cartoon/platforms/basic_2.png");
     this.load.image("basic_1", "cartoon/platforms/basic_1.png");
+        this.load.image("falling_3", "cartoon/platforms/falling_3.png");
+
     // this.load.spritesheet("enemy", "cartoon/mushroom_walk.png", {
     //   frameWidth: 16,
     //   frameHeight: 16,
@@ -62,7 +65,7 @@ export default class PreloadScene extends Phaser.Scene {
     // this.load.tilemapTiledJSON("map", "assets/level1.json");
 
     this.load.image("gandcTiles", "cartoon/Ground-and-Ceiling.png");
-    this.load.image("backgroundTexture", "cartoon/background_middle.png");
+    // this.load.image("backgroundTexture", "cartoon/background_middle.png");
     this.load.tilemapTiledJSON("tilemap", "map.json");
   }
 
