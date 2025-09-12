@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import PLATFORM_TYPES from "../data/PlatformTypes.json";
 
 export default class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -36,6 +37,19 @@ export default class PreloadScene extends Phaser.Scene {
 
     this.load.image("basic_3", "cartoon/platforms/basic_3.png");
     this.load.image("basic_1", "cartoon/platforms/basic_1.png");
+    this.load.image("falling_3", "cartoon/platforms/falling_3.png");
+    // =Enemy sprites=
+    this.load.image("stump_brown", "cartoon/enemies/stump_brown.png");
+    this.load.image("stump_red", "cartoon/enemies/stump_red.png");
+    this.load.image("stump_blue", "cartoon/enemies/stump_blue.png");
+    this.load.image("spikeyShell_yellow", "cartoon/enemies/spikeyShell_yellow.png");
+    this.load.image("spikeyShell_blue", "cartoon/enemies/spikeyShell_blue.png");
+    this.load.image("spikeyShell_red", "cartoon/enemies/spikeyShell_red.png");
+    this.load.image("spikeyShell_darkGrey", "cartoon/enemies/spikeyShell_darkGrey.png");
+
+    // Dynamically load any additional platform images declared in JSON
+this.loadPlatforms();
+
     // this.load.spritesheet("enemy", "cartoon/mushroom_walk.png", {
     //   frameWidth: 16,
     //   frameHeight: 16,
@@ -65,8 +79,34 @@ export default class PreloadScene extends Phaser.Scene {
     this.load.image("backgroundTexture", "cartoon/background_middle.png");
     this.load.tilemapTiledJSON("tilemap", "map.json");
   }
+    loadPlatforms() {
+    const seen = new Set();
+    (PLATFORM_TYPES || []).forEach((p) => {
+      const blocks = (p?.basic ?? p?.blocks);
+      const type = p?.type;
+      if (!type || !blocks) return;
+
+      const key = `${type}_${blocks}`; // e.g., "basic_3"
+      if (seen.has(key) || this.textures.exists(key)) return;
+
+      // Respect this.load.setPath("assets"): do NOT start with '/'
+      this.load.image(key, `cartoon/platforms/${key}.png`);
+      seen.add(key);
+    });
+  }
 
   create() {
+      console.log(
+    "[preload] enemy keys exist?:",
+    "stump_brown", this.textures.exists("stump_brown"),
+    "stump_red", this.textures.exists("stump_red"),
+    "stump_blue", this.textures.exists("stump_blue"),
+    "spikeyShell_yellow", this.textures.exists("spikeyShell_yellow"),
+    "spikeyShell_blue", this.textures.exists("spikeyShell_blue"),
+    "spikeyShell_red", this.textures.exists("spikeyShell_red"),
+    "spikeyShell_darkGrey", this.textures.exists("spikeyShell_darkGrey")
+  );
+
     this.scene.start("GameScene");
   }
 }

@@ -52,6 +52,8 @@ export default class GameScene extends Phaser.Scene {
 
     this.coins = this.physics.add.group();
     this.enemies = this.physics.add.group();
+    this.physics.add.collider(this.enemies, this.platforms);
+
 
     this.physics.add.overlap(
       this.player,
