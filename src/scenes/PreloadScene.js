@@ -39,13 +39,18 @@ export default class PreloadScene extends Phaser.Scene {
     this.load.image("basic_1", "cartoon/platforms/basic_1.png");
     this.load.image("falling_3", "cartoon/platforms/falling_3.png");
     // =Enemy sprites=
-    this.load.image("stump_brown", "cartoon/enemies/stump_brown.png");
-    this.load.image("stump_red", "cartoon/enemies/stump_red.png");
-    this.load.image("stump_blue", "cartoon/enemies/stump_blue.png");
-    this.load.image("spikeyShell_yellow", "cartoon/enemies/spikeyShell_yellow.png");
-    this.load.image("spikeyShell_blue", "cartoon/enemies/spikeyShell_blue.png");
-    this.load.image("spikeyShell_red", "cartoon/enemies/spikeyShell_red.png");
-    this.load.image("spikeyShell_darkGrey", "cartoon/enemies/spikeyShell_darkGrey.png");
+    // TODO: put YOUR real frame sizes below for each sheet
+// =Enemy sprites= (3x1 sheets; per-frame is 16x16)
+this.load.spritesheet("stump_brown","cartoon/enemies/stump_brown.png",{ frameWidth: 16, frameHeight: 16 });
+this.load.spritesheet("stump_red","cartoon/enemies/stump_red.png",{ frameWidth: 16, frameHeight: 16 });
+this.load.spritesheet("stump_blue","cartoon/enemies/stump_blue.png",{ frameWidth: 16, frameHeight: 16 });
+
+this.load.spritesheet("spikeyShell_yellow","cartoon/enemies/spikeyShell_yellow.png",{ frameWidth: 16, frameHeight: 16 });
+this.load.spritesheet("spikeyShell_blue","cartoon/enemies/spikeyShell_blue.png",{ frameWidth: 16, frameHeight: 16 });
+this.load.spritesheet("spikeyShell_red","cartoon/enemies/spikeyShell_red.png",{ frameWidth: 16, frameHeight: 16 });
+this.load.spritesheet("spikeyShell_darkGrey","cartoon/enemies/spikeyShell_darkGrey.png",{ frameWidth: 16, frameHeight: 16 });
+
+
 
     // Dynamically load any additional platform images declared in JSON
 this.loadPlatforms();
