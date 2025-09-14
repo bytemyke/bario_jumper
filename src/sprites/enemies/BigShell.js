@@ -1,80 +1,99 @@
 import Phaser from "phaser";
 
-/** High-level behavior:
- *  - Visual:
- *      • Uses "bigShell_<color>" if you add those assets later.
- *      • Otherwise tries a single-image key ("big_shell" or "bigShell") if preloaded.
- *      • Otherwise falls back to spikey shell art or "basic_3".
- *  - Spawn: placed on top of the host platform.
- *  - Modes: "walk" | "shell" | "shell_flying"
- *      • walk: patrol at low speed, turn at edges.
- *      • stomped from above → enter "shell" (stop moving, tint).
- *      • hit again while shell → kick to high speed for 5s ("shell_flying"), then destroy.
- *  - Player contact:
- *      • walk   → damages unless stomped.
- *      • shell  → second hit kicks the shell across the platform.
+/**
+ * BigShell enemy (3x1 spritesheet; frame 0 for idle).
+ *
+ * Modes:
+ *  - "walk"  : patrol on the host platform; turn at edges.
+ *  - "shell" : entered when the player stomps from above; stops, tints, shows frame 2 if available.
+ *
+ * Notes:
+ *  - Your project currently ships only: bigShell_red.png
+ *    (This class still accepts a few key-name variants for safety.)
  */
 export default class BigShell extends Phaser.Physics.Arcade.Sprite {
   static TYPE = "bigShell";
 
-  // Fill this with colors when you add assets like "bigShell_red.png".
-  static COLORS = [];
-
-  /**
-   * CONSTRUCTOR
-   *  - Selects an appropriate texture key via _chooseKey().
-   *  - Creates the Arcade Sprite on top of the platform.
-   *  - Sets up physics, platform collider, identity, and patrol behavior.
-   *  - Starts in "walk" mode.
-   */
   constructor(scene, platform, x = platform.x, color = null) {
+    // Prefer the real key you preload: "bigShell_red" (with a few tolerant variants)
     const key = BigShell._chooseKey(scene, color);
+
+    // Place slightly above platform so Arcade settles it on top.
     const y = platform.y - platform.displayHeight / 2 - 8;
 
-    super(scene, x, y, key);
-
+    // Create sprite; default to first frame of the sheet.
+    super(scene, x, y, key, 0);
     scene.add.existing(this);
+    this.setDepth(10); // render above platforms
+
+    // If the texture has multiple frames, enforce frame 0 for idle.
+    {
+      const tex = scene.textures.get(this.texture.key);
+      if (tex && tex.frameTotal > 1) this.setFrame(0);
+    }
+
+    // Physics + groups
     scene.physics.add.existing(this);
     scene.enemies?.add(this);
+
+    // Grounding collider (mirrors Stump/SmallShell)
     scene.physics.add.collider(this, scene.platforms);
 
+    // Identity/meta
     this.type = BigShell.TYPE;
-    this.colors = BigShell.COLORS.slice();
-    this.color = color;
     this.textureKey = key;
 
+    // Movement / mode
     this.homePlatform = platform;
     this.speed = 42;
-    this.mode = "walk"; // "walk" | "shell" | "shell_flying"
+    this.mode = "walk";          // "walk" | "shell"
+    this._modeCooldown = false;  // blocks duplicate state changes briefly
     this._initPatrolBounds();
 
     this.setBounce(0).setCollideWorldBounds(false);
     this.setVelocityX(Math.random() < 0.5 ? -this.speed : this.speed);
+
+    // Ensure the physics body matches the current frame (e.g., 16x16).
+    if (this.body && this.body.setSize) {
+      const fw = this.frame?.realWidth ?? this.width;
+      const fh = this.frame?.realHeight ?? this.height;
+      this.body.setSize(fw, fh, true);
+    }
   }
 
   /**
-   * static _chooseKey(scene, color)
-   *  - If a colored bigShell_<color> exists, use it.
-   *  - Else try single-image big-shell keys ("big_shell" then "bigShell").
-   *  - Else fall back to spikeyShell_* (red → blue) then "basic_3".
+   * Prefer canonical "bigShell_red" (what you preload),
+   * accept underscore/case variants, then minimal enemy fallback, then platform.
    */
   static _chooseKey(scene, color) {
-    const desired = color ? `bigShell_${color}` : null;
-    if (desired && scene.textures.exists(desired)) return desired;
+    const variants = (base) => [
+      base,                                   // bigShell_red
+      base.replace("bigShell_", "big_Shell_"),// big_Shell_red
+      base.replace("bigShell", "BigShell"),   // BigShell_red / BigShell
+      base.replace("bigShell", "big_shell"),  // big_shell_red / big_shell
+    ];
 
-    if (scene.textures.exists("big_shell")) return "big_shell";
-    if (scene.textures.exists("bigShell"))  return "bigShell";
+    const candidates = [];
+    // Color parameter is ignored unless it's "red" (only art you have).
+    if (color === "red") {
+      candidates.push(...variants("bigShell_red"));
+    } else {
+      candidates.push(...variants("bigShell_red")); // default/only asset
+    }
 
-    if (scene.textures.exists("spikeyShell_red"))  return "spikeyShell_red";
-    if (scene.textures.exists("spikeyShell_blue")) return "spikeyShell_blue";
+    // Optional enemy fallbacks you likely have
+    candidates.push("spikeyShell_yellow", "spikeyShell_blue", "spikeyShell_red");
 
+    // Absolute last resort
+    candidates.push("basic_3");
+
+    for (const k of candidates) {
+      if (scene.textures.exists(k)) return k;
+    }
     return "basic_3";
   }
 
-  /**
-   * _initPatrolBounds()
-   *  - Calculates left/right patrol limits derived from platform width.
-   */
+  /** Compute patrol bounds from platform size with a small margin. */
   _initPatrolBounds() {
     const margin = 12;
     const half = this.homePlatform.displayWidth / 2;
@@ -82,51 +101,75 @@ export default class BigShell extends Phaser.Physics.Arcade.Sprite {
     this.rightBound = this.homePlatform.x + half - margin;
   }
 
-  /**
-   * preUpdate(time, delta)
-   *  - While in "walk" mode, reverses direction at patrol edges each frame.
-   */
+  /** Patrol only in "walk"; bail if the platform is gone. */
   preUpdate(time, delta) {
     super.preUpdate(time, delta);
     if (this.mode !== "walk") return;
+    if (!this.homePlatform || !this.homePlatform.active) return;
+
     if (this.x <= this.leftBound)  this.setVelocityX(Math.abs(this.speed));
     if (this.x >= this.rightBound) this.setVelocityX(-Math.abs(this.speed));
   }
 
   /**
-   * onPlayerCollide(player)
-   *  - "walk": if stomped from above → enter shell; else damage player.
-   *  - "shell": second hit kicks the shell horizontally; schedules destroy in 5s.
-   *  - "shell_flying": (extend later if you want it to hurt things while flying).
+   * Player overlap handler (wire with physics.overlap in your Scene):
+   *  - "walk": stomp → enter shell; else damage + small bounce to separate.
+   *  - "shell": (kick/push to be added later).
    */
   onPlayerCollide(player) {
     if (this.mode === "walk") {
-      if (this._isStomp(player)) return this._enterShell();
-      return player?.takeDamage?.();
+      if (this._isStomp(player)) {
+        this._enterShell(player);
+        return;
+      }
+      player?.takeDamage?.();
+      if (player?.body) player.setVelocityY(-160);
+      return;
     }
-    if (this.mode === "shell") {
-      const dir = player.x < this.x ? 1 : -1; // kick away from player
-      this.mode = "shell_flying";
-      this.setVelocityX(340 * dir);
-      this.scene.time.delayedCall(5000, () => this.destroy());
-    }
+    // "shell" kick/push behavior can be added when you're ready
   }
 
-  /**
-   * _isStomp(player)
-   *  - Returns true when the player is moving downward and is above the shell enough to count as a stomp.
-   */
+  /** True if the player is falling (vy > 0) and above our top quarter. */
   _isStomp(player) {
-    return player?.body?.velocity?.y > 0 && player.y < this.y - this.displayHeight * 0.25;
+    if (!player || !player.body) return false;
+    const vy = player.body.velocity?.y ?? 0; // +Y is downward
+    return vy > 0 && player.y < this.y - this.displayHeight * 0.25;
   }
 
   /**
-   * _enterShell()
-   *  - Switches mode to "shell", stops horizontal movement, and tints for visual feedback.
+   * Safely enter "shell" state:
+   *  - stop movement
+   *  - frame 2 if available (shell/flatten look), tint for clarity
+   *  - resize body to frame
+   *  - bounce player up
+   *  - brief non-collide window to avoid immediate retrigger
    */
-  _enterShell() {
+  _enterShell(player) {
+    if (this.mode !== "walk" || this._modeCooldown) return;
+    this._modeCooldown = true;
+
     this.mode = "shell";
     this.setVelocityX(0);
+
+    const tex = this.scene.textures.get(this.texture.key);
+    if (tex && tex.frameTotal >= 3) {
+      this.setFrame(2);
+      if (this.body && this.body.setSize) {
+        this.body.setSize(this.frame.realWidth, this.frame.realHeight, true);
+      }
+    }
     this.setTint(0x777777);
+
+    if (player?.body) player.setVelocityY(-220);
+
+    if (this.body) {
+      this.body.checkCollision.none = true;
+      this.scene.time.delayedCall(80, () => {
+        if (this.body) this.body.checkCollision.none = false;
+        this._modeCooldown = false;
+      });
+    } else {
+      this._modeCooldown = false;
+    }
   }
 }

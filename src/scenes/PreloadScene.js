@@ -44,17 +44,13 @@ export default class PreloadScene extends Phaser.Scene {
 this.load.spritesheet("stump_brown","cartoon/enemies/stump_brown.png",{ frameWidth: 16, frameHeight: 16 });
 this.load.spritesheet("stump_red","cartoon/enemies/stump_red.png",{ frameWidth: 16, frameHeight: 16 });
 this.load.spritesheet("stump_blue","cartoon/enemies/stump_blue.png",{ frameWidth: 16, frameHeight: 16 });
-
 this.load.spritesheet("spikeyShell_yellow","cartoon/enemies/spikeyShell_yellow.png",{ frameWidth: 16, frameHeight: 16 });
-this.load.spritesheet("spikeyShell_blue","cartoon/enemies/spikeyShell_blue.png",{ frameWidth: 16, frameHeight: 16 });
-this.load.spritesheet("spikeyShell_red","cartoon/enemies/spikeyShell_red.png",{ frameWidth: 16, frameHeight: 16 });
-this.load.spritesheet("spikeyShell_darkGrey","cartoon/enemies/spikeyShell_darkGrey.png",{ frameWidth: 16, frameHeight: 16 });
-
-
-
+// =SmallShell sprites= (3x1; per-frame is 16x16)
+this.load.spritesheet("smallShell_blue","cartoon/enemies/smallShell_blue.png",{ frameWidth: 16, frameHeight: 16 });
+this.load.spritesheet("smallShell_darkGrey", "cartoon/enemies/smallShell_darkGrey.png", { frameWidth: 16, frameHeight: 16 });
+this.load.spritesheet("bigShell_red","cartoon/enemies/bigShell_red.png",{ frameWidth: 16, frameHeight: 16 });
     // Dynamically load any additional platform images declared in JSON
 this.loadPlatforms();
-
     // this.load.spritesheet("enemy", "cartoon/mushroom_walk.png", {
     //   frameWidth: 16,
     //   frameHeight: 16,
@@ -101,17 +97,6 @@ this.loadPlatforms();
   }
 
   create() {
-      console.log(
-    "[preload] enemy keys exist?:",
-    "stump_brown", this.textures.exists("stump_brown"),
-    "stump_red", this.textures.exists("stump_red"),
-    "stump_blue", this.textures.exists("stump_blue"),
-    "spikeyShell_yellow", this.textures.exists("spikeyShell_yellow"),
-    "spikeyShell_blue", this.textures.exists("spikeyShell_blue"),
-    "spikeyShell_red", this.textures.exists("spikeyShell_red"),
-    "spikeyShell_darkGrey", this.textures.exists("spikeyShell_darkGrey")
-  );
-
     this.scene.start("GameScene");
   }
 }
