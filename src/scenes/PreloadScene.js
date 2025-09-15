@@ -10,6 +10,7 @@ export default class PreloadScene extends Phaser.Scene {
     this.loadAudio();
     this.loadPlatforms();
     this.loadParticles();
+    this.loadControls();
     this.load.spritesheet("mini_player", "cco/bario_mini.png", {
       frameWidth: 18,
       frameHeight: 17,
@@ -60,17 +61,18 @@ export default class PreloadScene extends Phaser.Scene {
     // this.load.audio("game_over_sfx", "assets/audio/sfx/lose.wav");
   }
   loadPlatforms() {
-  PLATFORM_TYPES.forEach((p) => {
-    let key = p.type + "_" +  p.blocks
-    this.load.image(key, "/cartoon/platforms/" + key + ".png");
-  })
-    
+    PLATFORM_TYPES.forEach((p) => {
+      let key = p.type + "_" + p.blocks;
+      this.load.image(key, "/cartoon/platforms/" + key + ".png");
+    });
   }
 
   loadParticles() {
     this.load.image("small_debris", "cco/particles/grey_particle_small.png");
   }
-
+  loadControls() {
+    this.load.image("arrow_button", "cco/controls/arrow_button.png");
+  }
   create() {
     this.scene.start("GameScene");
   }

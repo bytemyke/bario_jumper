@@ -153,33 +153,52 @@ export default class GameScene extends Phaser.Scene {
   createMobileControls() {
     const { width, height } = this.sys.game.canvas;
 
-    // Track control states
-    this.controls = {
-      left: false,
-      right: false,
-      jump: false,
-    };
+    this.controls = { left: false, right: false, jump: false };
 
-    // Create buttons
+    // LEFT button
     this.leftButton = this.add
-      .rectangle(80, height - 80, 100, 100, 0xffffff, 0.3)
-      .setInteractive();
-    this.rightButton = this.add
-      .rectangle(200, height - 80, 100, 100, 0xffffff, 0.3)
-      .setInteractive();
-    this.jumpButton = this.add
-      .rectangle(width - 100, height - 80, 120, 100, 0xffffff, 0.3)
-      .setInteractive();
-
-    // Pointer events
-    this.leftButton.on("pointerdown", () => {
-      this.controls.left = true;
-      console.log("left");
-    });
+      .image(80, height - 80, "arrow_button")
+      .setInteractive()
+      .setScrollFactor(0)
+      .setScale(1.5)
+      .setPipeline("TextureTintPipeline")
+      .setRotation(Math.PI / -2)
+      .setDepth(9999)
+      .setAlpha(.5);
+    this.leftButton.on("pointerdown", () => (this.controls.left = true));
     this.leftButton.on("pointerup", () => (this.controls.left = false));
+    this.leftButton.on("pointerout", () => (this.controls.left = false));
+
+    // RIGHT button
+    this.rightButton = this.add
+      .image(200, height - 80, "arrow_button")
+      .setInteractive()
+      .setScrollFactor(0)
+      .setScale(1.5)
+      .setPipeline("TextureTintPipeline")
+      .setRotation(Math.PI / 2)
+      .setDepth(9999)
+      .setAlpha(.5);
     this.rightButton.on("pointerdown", () => (this.controls.right = true));
     this.rightButton.on("pointerup", () => (this.controls.right = false));
+    this.rightButton.on("pointerout", () => (this.controls.right = false));
+
+    // JUMP button
+    this.jumpButton = this.add
+      .image(
+        this.rightButton.x + this.rightButton.width + 50,
+        height - 80,
+        "arrow_button"
+      )
+      .setInteractive()
+      .setScrollFactor(0)
+      .setDepth(9999)
+      .setAlpha(.5);
     this.jumpButton.on("pointerdown", () => (this.controls.up = true));
     this.jumpButton.on("pointerup", () => (this.controls.up = false));
+    this.jumpButton
+      .on("pointerout", () => (this.controls.up = false))
+      .setScale(1.5)
+      .setPipeline("TextureTintPipeline");
   }
 }
