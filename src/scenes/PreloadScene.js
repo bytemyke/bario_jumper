@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import PLATFORM_TYPES from "../data/PlatformTypes.json";
 
 export default class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -36,6 +37,20 @@ export default class PreloadScene extends Phaser.Scene {
 
     this.load.image("basic_3", "cartoon/platforms/basic_3.png");
     this.load.image("basic_1", "cartoon/platforms/basic_1.png");
+    this.load.image("falling_3", "cartoon/platforms/falling_3.png");
+    // =Enemy sprites=
+    // TODO: put YOUR real frame sizes below for each sheet
+// =Enemy sprites= (3x1 sheets; per-frame is 16x16)
+this.load.spritesheet("stump_brown","cartoon/enemies/stump_brown.png",{ frameWidth: 16, frameHeight: 16 });
+this.load.spritesheet("stump_red","cartoon/enemies/stump_red.png",{ frameWidth: 16, frameHeight: 16 });
+this.load.spritesheet("stump_blue","cartoon/enemies/stump_blue.png",{ frameWidth: 16, frameHeight: 16 });
+this.load.spritesheet("spikeyShell_yellow","cartoon/enemies/spikeyShell_yellow.png",{ frameWidth: 16, frameHeight: 16 });
+// =SmallShell sprites= (3x1; per-frame is 16x16)
+this.load.spritesheet("smallShell_blue","cartoon/enemies/smallShell_blue.png",{ frameWidth: 16, frameHeight: 16 });
+this.load.spritesheet("smallShell_darkGrey", "cartoon/enemies/smallShell_darkGrey.png", { frameWidth: 16, frameHeight: 16 });
+this.load.spritesheet("bigShell_red","cartoon/enemies/bigShell_red.png",{ frameWidth: 16, frameHeight: 16 });
+    // Dynamically load any additional platform images declared in JSON
+this.loadPlatforms();
     // this.load.spritesheet("enemy", "cartoon/mushroom_walk.png", {
     //   frameWidth: 16,
     //   frameHeight: 16,
@@ -64,6 +79,21 @@ export default class PreloadScene extends Phaser.Scene {
     this.load.image("gandcTiles", "cartoon/Ground-and-Ceiling.png");
     this.load.image("backgroundTexture", "cartoon/background_middle.png");
     this.load.tilemapTiledJSON("tilemap", "map.json");
+  }
+    loadPlatforms() {
+    const seen = new Set();
+    (PLATFORM_TYPES || []).forEach((p) => {
+      const blocks = (p?.basic ?? p?.blocks);
+      const type = p?.type;
+      if (!type || !blocks) return;
+
+      const key = `${type}_${blocks}`; // e.g., "basic_3"
+      if (seen.has(key) || this.textures.exists(key)) return;
+
+      // Respect this.load.setPath("assets"): do NOT start with '/'
+      this.load.image(key, `cartoon/platforms/${key}.png`);
+      seen.add(key);
+    });
   }
 
   create() {
