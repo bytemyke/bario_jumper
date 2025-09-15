@@ -2,6 +2,8 @@
 import Phaser from "phaser";
 import Platform from "../sprites/Platform";
 import { maybeAttachSpring } from "../functions/spawnSprings";
+import { maybeAttachEnemy } from "../functions/spawnEnemies";
+
 
 
 /* ---------------- Tunables (density & difficulty) ---------------- */
@@ -223,6 +225,8 @@ function seedFullScreen(scene, player, h, reach, camTop, camBot, bandTop, bandBo
   if (!placedFirst) { p1.destroy(); return; }
   p1.isEssential = true;
   p1.refreshBody?.();
+  //Cam added: enemy eligibility evaluation 
+  maybeAttachEnemy(scene, p1);
 // Cam added: Evaluate spring eligibility for the very first essential platform.
 maybeAttachSpring(scene, player, p1, { isEssential: true, prevEssential: null });
 
@@ -264,6 +268,8 @@ maybeAttachSpring(scene, player, p1, { isEssential: true, prevEssential: null })
     if (ok) {
       next.isEssential = true;
       next.refreshBody?.();
+      // Cam added: enemy eligibility evaluation
+      maybeAttachEnemy(scene, next);
      // For each new essential rung, evaluate spring eligibility and place it relative to the previous essential for “far/middle” logic.
     maybeAttachSpring(scene, player, next, { isEssential: true, prevEssential: prev });
 
@@ -303,6 +309,8 @@ const prevBefore = prev;
       break;
     }
     if (ok) { last.isEssential = true; last.refreshBody?.(); prev = last; } else { last.destroy(); }
+    // Cam added: enemy eligibility evaluation
+    maybeAttachEnemy(scene, last);
     //  The snapped essential rung is finalized—now run spring logic using the cached previous essential to respect far/middle placement.
 maybeAttachSpring(scene, player, last, { isEssential: true, prevEssential: prevBefore });
 
@@ -336,6 +344,8 @@ maybeAttachSpring(scene, player, last, { isEssential: true, prevEssential: prevB
     if (ok) {
       next.isEssential = true;
       next.refreshBody?.();
+      // Cam added: enemy eligibility evaluation
+      maybeAttachEnemy(scene, next);
       // For headroom essentials placed above the camera, evaluate and attach springs so newly scrolled-in rungs can have springs too.
     maybeAttachSpring(scene, player, next, { isEssential: true, prevEssential: prev });
 
@@ -377,6 +387,8 @@ function spawnOneAtTopPreferOffscreen(scene, player, h, reach, camTop) {
     p.setPosition(x, y);
     p.isEssential = true;
     p.refreshBody?.();
+    // Cam added: enemy eligibility evaluation
+    maybeAttachEnemy(scene, p);
     // When we add a new essential at the top, consider attaching a spring using the last top essential as the “previous” for far/middle choice.
     maybeAttachSpring(scene, player, p, { isEssential: true, prevEssential: prevTop });
 
@@ -482,6 +494,8 @@ function placeOptionalOnSide(scene, player, upper, lower, h, reach, targetSide, 
 
     p.setPosition(x, proposedY);
     p.refreshBody?.();
+    // Cam added: enemy eligibility evaluation
+    maybeAttachEnemy(scene, p);
     // Even for optional rungs, evaluate spring eligibility (policy allows it but placement isn’t constrained by previous essentials).
     maybeAttachSpring(scene, player, p, { isEssential: false });
 

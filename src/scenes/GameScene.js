@@ -31,12 +31,7 @@ export default class GameScene extends Phaser.Scene {
     if (isMobile) {
       this.createMobileControls();
     }
-    this.anims.create({
-      key: "coinSpin",
-      frames: this.anims.generateFrameNumbers("coin", { start: 0, end: 19 }),
-      frameRate: 10,
-      repeat: -1,
-    });
+    
 
     this.anims.create({
       key: "coinSpin",
@@ -59,6 +54,13 @@ export default class GameScene extends Phaser.Scene {
 
     this.coins = this.physics.add.group();
     this.enemies = this.physics.add.group();
+    this.physics.add.collider(this.enemies, this.platforms);
+
+      // Player vs enemies should be OVERLAP (no separation), and null-safe
+this.physics.add.overlap(this.player, this.enemies, (player, enemy) => {
+  if (!enemy || !enemy.onPlayerCollide) return;
+  enemy.onPlayerCollide(player);
+});
 
     this.physics.add.overlap(
       this.player,
