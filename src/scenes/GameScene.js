@@ -94,6 +94,7 @@ export default class GameScene extends Phaser.Scene {
     this.highestCameraY = this.cameras.main.scrollY;
     //map creation
     this.mapData = createMap(this, this.player);
+    initializePlatforms(this, this.player);
 
     this.upgrades = new UpgradeManager(this, this.player, this.platforms);
 
@@ -101,7 +102,6 @@ export default class GameScene extends Phaser.Scene {
     this.physics.add.overlap(this.player, this.enemies, () => {
       this.upgrades.handleDamage(); // central place for damage handling
     });
-    initializePlatforms(this, this.player);
     // setInterval(() => this.spawnCoin(), 1000);
   }
 
