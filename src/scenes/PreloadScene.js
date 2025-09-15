@@ -21,12 +21,6 @@ export default class PreloadScene extends Phaser.Scene {
       frameWidth: 18,
       frameHeight: 33,
     });
-
-    this.load.image("flower", "cco/flower_level_up.png");
-    this.load.spritesheet("mushroom", "cco/mushroom_level_up.png", {
-      frameWidth: 74 / 2,
-      frameHeight: 32,
-    });
     this.load.spritesheet(
       "mini_to_big",
       "cco/bario_mini_to_big_transform-Sheet.png",
@@ -36,31 +30,19 @@ export default class PreloadScene extends Phaser.Scene {
       }
     );
 
-    // =Enemy sprites=
-    // TODO: put YOUR real frame sizes below for each sheet
-// =Enemy sprites= (3x1 sheets; per-frame is 16x16)
-this.load.spritesheet("stump_brown","cartoon/enemies/stump_brown.png",{ frameWidth: 16, frameHeight: 16 });
-this.load.spritesheet("stump_red","cartoon/enemies/stump_red.png",{ frameWidth: 16, frameHeight: 16 });
-this.load.spritesheet("stump_blue","cartoon/enemies/stump_blue.png",{ frameWidth: 16, frameHeight: 16 });
-this.load.spritesheet("spikeyShell_yellow","cartoon/enemies/spikeyShell_yellow.png",{ frameWidth: 16, frameHeight: 16 });
-// =SmallShell sprites= (3x1; per-frame is 16x16)
-this.load.spritesheet("smallShell_blue","cartoon/enemies/smallShell_blue.png",{ frameWidth: 16, frameHeight: 16 });
-this.load.spritesheet("smallShell_darkGrey", "cartoon/enemies/smallShell_darkGrey.png", { frameWidth: 16, frameHeight: 16 });
-this.load.spritesheet("bigShell_red","cartoon/enemies/bigShell_red.png",{ frameWidth: 16, frameHeight: 16 });
+    //load enemies
+    this.loadEnemies();
     // Dynamically load any additional platform images declared in JSON
-this.loadPlatforms();
-    // this.load.spritesheet("enemy", "cartoon/mushroom_walk.png", {
-    //   frameWidth: 16,
-    //   frameHeight: 16,
-    // });
-    // this.load.image("coin", "coin.png");
-    // this.load.spritesheet("coin","coin.png", {frameWidth: 50, frameHeight: 50});
+    this.loadPlatforms();
 
     this.load.spritesheet("coin", "coin.png", {
       frameWidth: 331,
       frameHeight: 331,
     });
-
+    this.load.spritesheet("mushroom", "cco/mushroom_level_up.png", {
+      frameWidth: 74 / 2,
+      frameHeight: 32,
+    });
     // Load the 3-frame sheet for spring so we can build the spring animation later.
     this.load.spritesheet("green_spring", "cartoon/sprites/green_spring.png", {
       frameWidth: 16,
@@ -72,10 +54,10 @@ this.loadPlatforms();
     // this.load.image("backgroundTexture", "cartoon/background_middle.png");
     this.load.tilemapTiledJSON("tilemap", "map.json");
   }
-    loadPlatforms() {
+  loadPlatforms() {
     const seen = new Set();
     (PLATFORM_TYPES || []).forEach((p) => {
-      const blocks = (p?.basic ?? p?.blocks);
+      const blocks = p?.basic ?? p?.blocks;
       const type = p?.type;
       if (!type || !blocks) return;
 
@@ -86,6 +68,59 @@ this.loadPlatforms();
       this.load.image(key, `cartoon/platforms/${key}.png`);
       seen.add(key);
     });
+  }
+  loadEnemies() {
+    // =Enemy sprites=
+    // TODO: put YOUR real frame sizes below for each sheet
+    // =Enemy sprites= (3x1 sheets; per-frame is 16x16)
+    this.load.spritesheet(
+      "stump_brown",
+      "cartoon/sprites/enemies/stump_brown.png",
+      {
+        frameWidth: 16,
+        frameHeight: 16,
+      }
+    );
+    this.load.spritesheet(
+      "stump_red",
+      "cartoon/sprites/enemies/stump_red.png",
+      {
+        frameWidth: 16,
+        frameHeight: 16,
+      }
+    );
+    this.load.spritesheet(
+      "stump_blue",
+      "cartoon/sprites/enemies/stump_blue.png",
+      {
+        frameWidth: 16,
+        frameHeight: 16,
+      }
+    );
+    this.load.spritesheet(
+      "spikeyShell_yellow",
+      "cartoon/sprites/enemies/spikeyShell_yellow.png",
+      { frameWidth: 16, frameHeight: 16 }
+    );
+    // =SmallShell sprites= (3x1; per-frame is 16x16)
+    this.load.spritesheet(
+      "smallShell_blue",
+      "cartoon/sprites/enemies/smallShell_blue.png",
+      { frameWidth: 16, frameHeight: 16 }
+    );
+    this.load.spritesheet(
+      "smallShell_darkGrey",
+      "cartoon/sprites/enemies/smallShell_darkGrey.png",
+      { frameWidth: 16, frameHeight: 16 }
+    );
+    this.load.spritesheet(
+      "bigShell_red",
+      "cartoon/sprites/enemies/bigShell_red.png",
+      {
+        frameWidth: 16,
+        frameHeight: 16,
+      }
+    );
   }
 
   loadAudio() {
@@ -106,9 +141,13 @@ this.loadPlatforms();
   loadParticles() {
     this.load.image("small_debris", "cco/particles/grey_particle_small.png");
   }
+
   loadControls() {
     this.load.image("arrow_button", "cco/controls/arrow_button.png");
-    this.load.image("arrow_button_pressed", "cco/controls/arrow_button_pressed.png");
+    this.load.image(
+      "arrow_button_pressed",
+      "cco/controls/arrow_button_pressed.png"
+    );
     this.load.image("music_on", "cco/controls/music_on.png");
     this.load.image("music_off", "cco/controls/music_off.png");
   }

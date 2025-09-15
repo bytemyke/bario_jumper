@@ -89,6 +89,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       this.anims.stop();
       this.scene.physics.world.pause();
       this.setTexture("mini_to_big", 0);
+      this.y -= 15;
       this.play("transform_mini");
     }
   }

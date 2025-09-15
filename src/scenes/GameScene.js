@@ -15,23 +15,28 @@ export default class GameScene extends Phaser.Scene {
     super("GameScene");
     this.score = 0;
   }
+  preload() {}
 
   create() {
+    console.log(this.sound.locked); // true means audio is waiting for unlock
+
     //start background music
     this.bgm = this.sound.add("bgm", {
       loop: true,
       volume: 0.5, // adjust to your liking
     });
+
+    this.bgm.play();
+    console.log(this.sound.locked); // true means audio is waiting for unlock
+
     const gameWidth = this.sys.game.config.width;
     const gameHeight = this.sys.game.config.height;
     new MuteButton(this, 20, gameHeight - 20);
-    this.bgm.play();
     const isMobile =
       this.sys.game.device.os.android || this.sys.game.device.os.iOS;
     if (isMobile) {
       this.createMobileControls();
     }
-    
 
     this.anims.create({
       key: "coinSpin",
@@ -56,11 +61,11 @@ export default class GameScene extends Phaser.Scene {
     this.enemies = this.physics.add.group();
     this.physics.add.collider(this.enemies, this.platforms);
 
-      // Player vs enemies should be OVERLAP (no separation), and null-safe
-this.physics.add.overlap(this.player, this.enemies, (player, enemy) => {
-  if (!enemy || !enemy.onPlayerCollide) return;
-  enemy.onPlayerCollide(player);
-});
+    // Player vs enemies should be OVERLAP (no separation), and null-safe
+    this.physics.add.overlap(this.player, this.enemies, (player, enemy) => {
+      if (!enemy || !enemy.onPlayerCollide) return;
+      enemy.onPlayerCollide(player);
+    });
 
     this.physics.add.overlap(
       this.player,

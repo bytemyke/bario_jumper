@@ -1,5 +1,4 @@
 import Mushroom from "../sprites/upgrades/Mushroom";
-// import Flower from "../sprites/upgrades/Flower";
 
 export default class UpgradeManager {
   constructor(scene, player, platforms) {
@@ -17,7 +16,7 @@ export default class UpgradeManager {
       null,
       this
     );
-    // this.spawnMushroom()
+     this.spawnMushroom()
     // Spawn timer
     this.scene.time.addEvent({
       delay: 10000, // check every 10s
@@ -40,11 +39,6 @@ export default class UpgradeManager {
     this.upgrades.add(mushroom);
   }
 
-  spawnFlower() {
-    const x = Phaser.Math.Between(50, this.scene.scale.width - 50);
-    const flower = new Flower(this.scene, x, 0);
-    this.upgrades.add(flower);
-  }
 
   handleCollision(player, upgrade) {
     if (upgrade.texture.key === "mushroom" && player.current_mode === "mini") {
