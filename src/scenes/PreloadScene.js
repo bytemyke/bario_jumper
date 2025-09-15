@@ -72,6 +72,9 @@ export default class PreloadScene extends Phaser.Scene {
   }
   loadControls() {
     this.load.image("arrow_button", "cco/controls/arrow_button.png");
+    this.load.image("arrow_button_pressed", "cco/controls/arrow_button_pressed.png");
+    this.load.image("music_on", "cco/controls/music_on.png");
+    this.load.image("music_off", "cco/controls/music_off.png");
   }
   create() {
     this.scene.start("GameScene");

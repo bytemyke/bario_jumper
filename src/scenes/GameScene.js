@@ -8,6 +8,7 @@ import {
 } from "../functions/spawnPlatforms";
 import { createMap, updateMap } from "../functions/createMap";
 import UpgradeManager from "../classes/UpgradeManager";
+import MuteButton from "../sprites/MuteButton";
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
@@ -21,8 +22,10 @@ export default class GameScene extends Phaser.Scene {
       loop: true,
       volume: 0.5, // adjust to your liking
     });
+    const gameWidth = this.sys.game.config.width;
+    const gameHeight = this.sys.game.config.height;
+    new MuteButton(this, 20, gameHeight - 20);
     this.bgm.play();
-
     const isMobile =
       this.sys.game.device.os.android || this.sys.game.device.os.iOS;
     if (isMobile) {
@@ -42,9 +45,6 @@ export default class GameScene extends Phaser.Scene {
       repeat: -1,
     });
     this.score = 0;
-
-    const gameWidth = this.sys.game.config.width;
-    const gameHeight = this.sys.game.config.height;
 
     this.scoreText = this.add
       .text(10, 10, "Score: 0", {
@@ -164,7 +164,7 @@ export default class GameScene extends Phaser.Scene {
       .setPipeline("TextureTintPipeline")
       .setRotation(Math.PI / -2)
       .setDepth(9999)
-      .setAlpha(.5);
+      .setAlpha(0.5);
     this.leftButton.on("pointerdown", () => (this.controls.left = true));
     this.leftButton.on("pointerup", () => (this.controls.left = false));
     this.leftButton.on("pointerout", () => (this.controls.left = false));
@@ -178,7 +178,7 @@ export default class GameScene extends Phaser.Scene {
       .setPipeline("TextureTintPipeline")
       .setRotation(Math.PI / 2)
       .setDepth(9999)
-      .setAlpha(.5);
+      .setAlpha(0.5);
     this.rightButton.on("pointerdown", () => (this.controls.right = true));
     this.rightButton.on("pointerup", () => (this.controls.right = false));
     this.rightButton.on("pointerout", () => (this.controls.right = false));
@@ -193,7 +193,7 @@ export default class GameScene extends Phaser.Scene {
       .setInteractive()
       .setScrollFactor(0)
       .setDepth(9999)
-      .setAlpha(.5);
+      .setAlpha(0.5);
     this.jumpButton.on("pointerdown", () => (this.controls.up = true));
     this.jumpButton.on("pointerup", () => (this.controls.up = false));
     this.jumpButton
