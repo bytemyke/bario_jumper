@@ -8,6 +8,7 @@ import {
 } from "../functions/spawnPlatforms";
 import { createMap, updateMap } from "../functions/createMap";
 import UpgradeManager from "../classes/UpgradeManager";
+import MuteButton from "../sprites/MuteButton";
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
@@ -16,6 +17,15 @@ export default class GameScene extends Phaser.Scene {
   }
 
   create() {
+    //start background music
+    this.bgm = this.sound.add("bgm", {
+      loop: true,
+      volume: 0.5, // adjust to your liking
+    });
+    const gameWidth = this.sys.game.config.width;
+    const gameHeight = this.sys.game.config.height;
+    new MuteButton(this, 20, gameHeight - 20);
+    this.bgm.play();
     const isMobile =
       this.sys.game.device.os.android || this.sys.game.device.os.iOS;
     if (isMobile) {
@@ -30,9 +40,6 @@ export default class GameScene extends Phaser.Scene {
       repeat: -1,
     });
     this.score = 0;
-
-    const gameWidth = this.sys.game.config.width;
-    const gameHeight = this.sys.game.config.height;
 
     this.scoreText = this.add
       .text(10, 10, "Score: 0", {
@@ -89,6 +96,7 @@ this.physics.add.overlap(this.player, this.enemies, (player, enemy) => {
     this.highestCameraY = this.cameras.main.scrollY;
     //map creation
     this.mapData = createMap(this, this.player);
+    initializePlatforms(this, this.player);
 
     this.upgrades = new UpgradeManager(this, this.player, this.platforms);
 
@@ -96,7 +104,6 @@ this.physics.add.overlap(this.player, this.enemies, (player, enemy) => {
     this.physics.add.overlap(this.player, this.enemies, () => {
       this.upgrades.handleDamage(); // central place for damage handling
     });
-    initializePlatforms(this, this.player);
     // setInterval(() => this.spawnCoin(), 1000);
   }
 
@@ -112,7 +119,6 @@ this.physics.add.overlap(this.player, this.enemies, (player, enemy) => {
       this.minScrollY = target;
     }
     this.cameras.main.scrollY = this.minScrollY; // never increases
-
   }
 
   collectCoin(player, coin) {
@@ -122,6 +128,9 @@ this.physics.add.overlap(this.player, this.enemies, (player, enemy) => {
   }
 
   hitEnemy() {
+    // this.scene.start("GameOverScene", { score: this.score });
+  }
+  gameOver() {
     this.scene.start("GameOverScene", { score: this.score });
   }
 
@@ -142,35 +151,56 @@ this.physics.add.overlap(this.player, this.enemies, (player, enemy) => {
     const x = Phaser.Math.Between(50, gameWidth - 50);
     const y = this.cameras.main.scrollY - 50;
     new Enemy(this, x, y);
-  }  
+  }
   createMobileControls() {
     const { width, height } = this.sys.game.canvas;
 
-    // Track control states
-    this.controls = {
-      left: false,
-      right: false,
-      jump: false,
-    };
+    this.controls = { left: false, right: false, jump: false };
 
-    // Create buttons
+    // LEFT button
     this.leftButton = this.add
-      .rectangle(80, height - 80, 100, 100, 0xFFFFFF, 0.3)
-      .setInteractive();
-    this.rightButton = this.add
-      .rectangle(200, height - 80, 100, 100, 0xFFFFFF, 0.3)
-      .setInteractive();
-    this.jumpButton = this.add
-      .rectangle(width - 100, height - 80, 120, 100, 0xFFFFFF, 0.3)
-      .setInteractive();
-
-    // Pointer events
-    this.leftButton.on("pointerdown", () => {
-      this.controls.left = true; console.log('left');});
+      .image(80, height - 80, "arrow_button")
+      .setInteractive()
+      .setScrollFactor(0)
+      .setScale(1.5)
+      .setPipeline("TextureTintPipeline")
+      .setRotation(Math.PI / -2)
+      .setDepth(9999)
+      .setAlpha(0.5);
+    this.leftButton.on("pointerdown", () => (this.controls.left = true));
     this.leftButton.on("pointerup", () => (this.controls.left = false));
+    this.leftButton.on("pointerout", () => (this.controls.left = false));
+
+    // RIGHT button
+    this.rightButton = this.add
+      .image(200, height - 80, "arrow_button")
+      .setInteractive()
+      .setScrollFactor(0)
+      .setScale(1.5)
+      .setPipeline("TextureTintPipeline")
+      .setRotation(Math.PI / 2)
+      .setDepth(9999)
+      .setAlpha(0.5);
     this.rightButton.on("pointerdown", () => (this.controls.right = true));
     this.rightButton.on("pointerup", () => (this.controls.right = false));
+    this.rightButton.on("pointerout", () => (this.controls.right = false));
+
+    // JUMP button
+    this.jumpButton = this.add
+      .image(
+        this.rightButton.x + this.rightButton.width + 50,
+        height - 80,
+        "arrow_button"
+      )
+      .setInteractive()
+      .setScrollFactor(0)
+      .setDepth(9999)
+      .setAlpha(0.5);
     this.jumpButton.on("pointerdown", () => (this.controls.up = true));
     this.jumpButton.on("pointerup", () => (this.controls.up = false));
+    this.jumpButton
+      .on("pointerout", () => (this.controls.up = false))
+      .setScale(1.5)
+      .setPipeline("TextureTintPipeline");
   }
 }
