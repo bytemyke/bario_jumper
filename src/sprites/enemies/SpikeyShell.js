@@ -1,8 +1,6 @@
 import Phaser from "phaser";
 
 /**
- * SpikeyShell enemy (no tween/animation).
- *
  * High-level behavior:
  *  - Visual: chooses one of the preloaded textures "spikeyShell_<color>".
  *  - Spawn: placed on top of a given platform.
@@ -11,18 +9,16 @@ import Phaser from "phaser";
  */
 export default class SpikeyShell extends Phaser.Physics.Arcade.Sprite {
   static TYPE = "spikeyShell";
-
+  static FACES_RIGHT = false; 
   // Valid color suffixes (expected preloaded keys):
   //  "spikeyShell_yellow", "spikeyShell_blue", "spikeyShell_red", "spikeyShell_darkGrey"
   static COLORS = ["yellow", "blue", "red", "darkGrey"];
 
   /**
    * CONSTRUCTOR
-   * What it does:
-   *  - Picks an available color and uses "spikeyShell_<color>" as preferred key.
-   *  - Falls back to "spikeyShell_blue" (if present) or "basic_3".
-   *  - Creates the Arcade Sprite on top of the platform.
-   *  - Registers physics, platform collider, and initial patrol behavior.
+   *  - Picks an available color key.
+   *  - Falls back to spikeyShell_blue or basic_3.
+   *  - Creates sprite on top of the platform, registers physics and patrol.
    */
   constructor(scene, platform, x = platform.x, color = null) {
     const chosenColor = SpikeyShell._pickColor(scene, color);
@@ -50,25 +46,19 @@ export default class SpikeyShell extends Phaser.Physics.Arcade.Sprite {
     this._initPatrolBounds();
 
     this.setBounce(0).setCollideWorldBounds(false);
-    this.setVelocityX(Math.random() < 0.5 ? -this.speed : this.speed);
+
+    // CHANGED: set initial direction (and flip) atomically
+    this._setDir(Math.random() < 0.5 ? -1 : 1);
   }
 
-  /**
-   * static _pickColor(scene, preferred)
-   *  - Returns preferred if its corresponding texture exists.
-   *  - Otherwise returns a random color from loaded ones.
-   *  - Else falls back to "blue".
-   */
+  /** Choose an available color key (spikeyShell_<color>). */
   static _pickColor(scene, preferred) {
     const avail = SpikeyShell.COLORS.filter(c => scene.textures.exists(`spikeyShell_${c}`));
     if (preferred && avail.includes(preferred)) return preferred;
     return (avail.length ? Phaser.Utils.Array.GetRandom(avail) : "blue");
   }
 
-  /**
-   * _initPatrolBounds()
-   *  - Calculates patrol limits based on platform width and margins.
-   */
+  /** Compute patrol bounds so we turn before the platform edge. */
   _initPatrolBounds() {
     const margin = 12;
     const half = this.homePlatform.displayWidth / 2;
@@ -76,21 +66,56 @@ export default class SpikeyShell extends Phaser.Physics.Arcade.Sprite {
     this.rightBound = this.homePlatform.x + half - margin;
   }
 
-  /**
-   * preUpdate(t, d)
-   *  - Flips direction at patrol bounds each frame update.
-   */
+  /** Turn around at patrol bounds each frame. */
   preUpdate(t, d) {
     super.preUpdate(t, d);
-    if (this.x <= this.leftBound)  this.setVelocityX(Math.abs(this.speed));
-    if (this.x >= this.rightBound) this.setVelocityX(-Math.abs(this.speed));
+    if (this.x <= this.leftBound)  this._setDir(+1);
+    if (this.x >= this.rightBound) this._setDir(-1);
+
+    // UPDATED: keep (optional) velocity-based correction but now honors FACES_RIGHT
+    this._updateFacing();
+  }
+
+  /** Spikey shells always hurt the player on contact. */
+onPlayerCollide(player) {
+  if (!this.active || !this.body || !player?.body) return;
+
+  // SpikeyShell has no stomp-safe state — always hurt the player
+  player?.takeDamage?.();
+  // Give a small knockback / separation
+  player.body && player.setVelocityY(-160);
+}
+
+
+  // UPDATED: honor FACES_RIGHT so this never fights _setDir()
+  _updateFacing() {
+    const vx = this.body?.velocity?.x ?? 0;
+    const facesRight = (this.constructor.FACES_RIGHT !== false); // default true
+    if (vx > 0) this.setFlipX(!facesRight);  // moving right
+    else if (vx < 0) this.setFlipX(facesRight); // moving left
   }
 
   /**
-   * onPlayerCollide(player)
-   *  - Spikey shells always hurt the player on contact.
+   * Set walking direction and flip immediately.
+   * dir: +1 (right), -1 (left), 0 (stop but keep last facing)
    */
-  onPlayerCollide(player) {
-    player?.takeDamage?.();
+  _setDir(dir) {
+    this._dir = dir;
+
+    // Move while in 'walk' (no other modes here, but future-proof)
+    const canMove = (this.mode == null || this.mode === "walk");
+    if (dir === 0 || !canMove) {
+      this.setVelocityX(0);
+    } else {
+      const speed = this.speed ?? 60;
+      this.setVelocityX(speed * dir);
+    }
+
+    // Flip now based on art’s default facing
+    const facesRight = (this.constructor.FACES_RIGHT !== false); // default: true
+    if (dir !== 0) {
+      const flip = (dir > 0) ? !facesRight : facesRight;
+      this.setFlipX(flip);
+    }
   }
 }

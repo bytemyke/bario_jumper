@@ -19,6 +19,7 @@ export default class GameScene extends Phaser.Scene {
 
   create() {
     console.log(this.sound.locked); // true means audio is waiting for unlock
+    this.cameras.main.roundPixels = true;
 
     //start background music
     this.bgm = this.sound.add("bgm", {
@@ -59,28 +60,25 @@ export default class GameScene extends Phaser.Scene {
 
     this.coins = this.physics.add.group();
     this.enemies = this.physics.add.group();
-    this.physics.add.collider(this.enemies, this.platforms);
 
-    // Player vs enemies should be OVERLAP (no separation), and null-safe
-    this.physics.add.overlap(this.player, this.enemies, (player, enemy) => {
-      if (!enemy || !enemy.onPlayerCollide) return;
-      enemy.onPlayerCollide(player);
-    });
-
-    this.physics.add.overlap(
-      this.player,
-      this.coins,
-      this.collectCoin,
-      null,
-      this
-    );
-    this.physics.add.collider(
-      this.player,
-      this.enemies,
-      this.hitEnemy,
-      null,
-      this
-    );
+  //coin overlap (no separation is fine for collectibles)
+this.physics.add.overlap(
+  this.player,
+  this.coins,
+  this.collectCoin,
+  null,
+  this
+);
+// REPLACE the enemy collider so there is only ONE binding and ONE handler
+if (this.playerEnemyCollider) this.playerEnemyCollider.destroy();
+this.playerEnemyCollider = this.physics.add.collider(
+  this.player,
+  this.enemies,
+  (player, enemy) => {
+    // Null-safe: let each enemy decide stomp/damage/etc.
+    enemy?.onPlayerCollide?.(player);
+  }
+);
 
     // Let the world extend far ABOVE 0 so the camera can go up
     const SKY = 100000; // big number
@@ -102,16 +100,9 @@ export default class GameScene extends Phaser.Scene {
     //map creation
     this.mapData = createMap(this, this.player);
     initializePlatforms(this, this.player);
-
+    this.physics.add.collider(this.enemies, this.platforms);
     this.upgrades = new UpgradeManager(this, this.player, this.platforms);
-
-    // enemy collisions
-    this.physics.add.overlap(this.player, this.enemies, () => {
-      this.upgrades.handleDamage(); // central place for damage handling
-    });
-    // setInterval(() => this.spawnCoin(), 1000);
   }
-
   update() {
     // this.mapData.background.tilePositionY = this.cameras.main.scrollY;
     updateMap(this.mapData, this.cameras.main);
