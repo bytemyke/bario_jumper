@@ -1,175 +1,204 @@
+// src/sprites/enemies/BigShell.js
 import Phaser from "phaser";
 
 /**
  * BigShell enemy (3x1 spritesheet; frame 0 for idle).
- *
- * Modes:
- *  - "walk"  : patrol on the host platform; turn at edges.
- *  - "shell" : entered when the player stomps from above; stops, tints, shows frame 2 if available.
- *
- * Notes:
- *  - Your project currently ships only: bigShell_red.png
- *    (This class still accepts a few key-name variants for safety.)
+ * - Spawns fully ABOVE the platform (origin bottom for precise placement)
+ * - Patrols on host platform; turns at bounds
+ * - On stomp: becomes "shell" (falls through platforms) but still hurts player on contact
  */
 export default class BigShell extends Phaser.Physics.Arcade.Sprite {
   static TYPE = "bigShell";
+  static FACES_RIGHT = false; // set to true if art faces RIGHT by default
 
   constructor(scene, platform, x = platform.x, color = null) {
-    // Prefer the real key you preload: "bigShell_red" (with a few tolerant variants)
     const key = BigShell._chooseKey(scene, color);
 
-    // Place slightly above platform so Arcade settles it on top.
     const y = platform.y - platform.displayHeight / 2 - 8;
-
-    // Create sprite; default to first frame of the sheet.
     super(scene, x, y, key, 0);
-    scene.add.existing(this);
-    this.setDepth(10); // render above platforms
 
-    // If the texture has multiple frames, enforce frame 0 for idle.
+    scene.add.existing(this);
+    this.setDepth(10);
+
+    // Use bottom origin so sprite.y is the FEET baseline
+    this.setOrigin(0.5, 1);
+
+    // Force frame 0 if sheet has multiple frames
     {
       const tex = scene.textures.get(this.texture.key);
       if (tex && tex.frameTotal > 1) this.setFrame(0);
     }
 
-    // Physics + groups
+    // Physics
     scene.physics.add.existing(this);
     scene.enemies?.add(this);
+    this._groundCollider = scene.physics.add.collider(this, scene.platforms);
 
-    // Grounding collider (mirrors Stump/SmallShell)
-    scene.physics.add.collider(this, scene.platforms);
+    // Body sizing
+    const bodyW = Math.round(this.displayWidth * 0.90);
+    const bodyH = Math.round(this.displayHeight * 0.80);
+    if (this.body && this.body.setSize) {
+      this.body.setSize(bodyW, bodyH);
+      const FOOT_BASELINE = 4;
+      const baseline = FOOT_BASELINE * this.scaleY;
+      const offX = (this.displayWidth - bodyW) / 2;
+      const offY = (this.displayHeight - bodyH) - baseline;
+      this.body.setOffset(offX, offY);
+      this.body.allowGravity = false;
+      this.body.bounce.set(0);
+    }
+
+    // FIX: define a safe gap before snapping (prevents NaN y)
+    this._GAP = 0;
+    this._snapSpriteToPlatform(platform);
 
     // Identity/meta
     this.type = BigShell.TYPE;
     this.textureKey = key;
 
-    // Movement / mode
+    // Patrol setup
     this.homePlatform = platform;
     this.speed = 42;
-    this.mode = "walk";          // "walk" | "shell"
-    this._modeCooldown = false;  // blocks duplicate state changes briefly
-    this._initPatrolBounds();
+    this.mode = "walk";
+    this._modeCooldown = false;
+    this.hazardous = true; // for "walk" mode
+    this._computePatrolBounds();
 
     this.setBounce(0).setCollideWorldBounds(false);
-    this.setVelocityX(Math.random() < 0.5 ? -this.speed : this.speed);
 
-    // Ensure the physics body matches the current frame (e.g., 16x16).
-    if (this.body && this.body.setSize) {
-      const fw = this.frame?.realWidth ?? this.width;
-      const fh = this.frame?.realHeight ?? this.height;
-      this.body.setSize(fw, fh, true);
-    }
+    // Initial direction + facing
+    this._setDir(Math.random() < 0.5 ? -1 : 1);
   }
 
-  /**
-   * Prefer canonical "bigShell_red" (what you preload),
-   * accept underscore/case variants, then minimal enemy fallback, then platform.
-   */
   static _chooseKey(scene, color) {
     const variants = (base) => [
-      base,                                   // bigShell_red
-      base.replace("bigShell_", "big_Shell_"),// big_Shell_red
-      base.replace("bigShell", "BigShell"),   // BigShell_red / BigShell
-      base.replace("bigShell", "big_shell"),  // big_shell_red / big_shell
+      base,
+      base.replace("bigShell_", "big_Shell_"),
+      base.replace("bigShell", "BigShell"),
+      base.replace("bigShell", "big_shell"),
     ];
-
     const candidates = [];
-    // Color parameter is ignored unless it's "red" (only art you have).
-    if (color === "red") {
-      candidates.push(...variants("bigShell_red"));
-    } else {
-      candidates.push(...variants("bigShell_red")); // default/only asset
-    }
-
-    // Optional enemy fallbacks you likely have
+    candidates.push(...variants("bigShell_red"));
     candidates.push("spikeyShell_yellow", "spikeyShell_blue", "spikeyShell_red");
-
-    // Absolute last resort
     candidates.push("basic_3");
-
-    for (const k of candidates) {
-      if (scene.textures.exists(k)) return k;
-    }
+    for (const k of candidates) if (scene.textures.exists(k)) return k;
     return "basic_3";
   }
 
-  /** Compute patrol bounds from platform size with a small margin. */
-  _initPatrolBounds() {
-    const margin = 12;
-    const half = this.homePlatform.displayWidth / 2;
-    this.leftBound  = this.homePlatform.x - half + margin;
-    this.rightBound = this.homePlatform.x + half - margin;
+  _computePatrolBounds() {
+    const platHalf  = this.homePlatform.displayWidth / 2;
+    const shellHalf = this.displayWidth / 2;
+    const margin = 2;
+    this.leftBound  = this.homePlatform.x - platHalf + shellHalf + margin;
+    this.rightBound = this.homePlatform.x + platHalf - shellHalf - margin;
   }
 
-  /** Patrol only in "walk"; bail if the platform is gone. */
   preUpdate(time, delta) {
     super.preUpdate(time, delta);
-    if (this.mode !== "walk") return;
     if (!this.homePlatform || !this.homePlatform.active) return;
 
-    if (this.x <= this.leftBound)  this.setVelocityX(Math.abs(this.speed));
-    if (this.x >= this.rightBound) this.setVelocityX(-Math.abs(this.speed));
+    if (this.mode === "walk") {
+      if (this.x <= this.leftBound)  this._setDir(+1);
+      if (this.x >= this.rightBound) this._setDir(-1);
+      this._snapSpriteToPlatform(this.homePlatform);
+      if (this.body) this.body.allowGravity = false;
+    } else if (this.mode === "shell") {
+      const cam = this.scene.cameras.main;
+      const bottom = cam.worldView.y + cam.worldView.height;
+      if (this.y > bottom + 64) this.destroy();
+    }
   }
 
-  /**
-   * Player overlap handler (wire with physics.overlap in your Scene):
-   *  - "walk": stomp → enter shell; else damage + small bounce to separate.
-   *  - "shell": (kick/push to be added later).
-   */
   onPlayerCollide(player) {
-    if (this.mode === "walk") {
-      if (this._isStomp(player)) {
-        this._enterShell(player);
-        return;
-      }
-      player?.takeDamage?.();
-      if (player?.body) player.setVelocityY(-160);
+  if (!this.active || !this.body || !player?.body) return;
+
+  if (this.mode === "walk" && this.hazardous) {
+    // WALK: stomp converts to shell, else damage
+    if (this._isStomp(player)) {
+      this._enterShell(player);
       return;
     }
-    // "shell" kick/push behavior can be added when you're ready
+    player.takeDamage?.();
+    player.setVelocityY(-160);
+    return;
   }
 
-  /** True if the player is falling (vy > 0) and above our top quarter. */
+  if (this.mode === "shell") {
+    // SHELL: do NOT hurt the player anymore
+    if (this._isStomp(player)) {
+      // Bounce player up a bit
+      player.setVelocityY(-240);
+
+      // Ensure shell is moving downward (no pass-through toggles)
+      const vy = this.body.velocity?.y ?? 0;
+      this.body.allowGravity = true;
+      this.body.setVelocityY(Math.max(vy, 420));
+
+      // keep colliding; just return
+      return;
+    }
+
+    // Side/bottom contact in shell: still no damage
+    return;
+  }
+}
+
+
   _isStomp(player) {
-    if (!player || !player.body) return false;
-    const vy = player.body.velocity?.y ?? 0; // +Y is downward
-    return vy > 0 && player.y < this.y - this.displayHeight * 0.25;
+    if (!player || !player.body || !this.body) return false;
+    const vy = player.body.velocity?.y ?? 0;   // +Y is downward
+    const playerBottom = player.body.bottom;
+    const shellTop = this.body.top;
+    return vy > 0 && playerBottom <= shellTop + 6;
   }
 
-  /**
-   * Safely enter "shell" state:
-   *  - stop movement
-   *  - frame 2 if available (shell/flatten look), tint for clarity
-   *  - resize body to frame
-   *  - bounce player up
-   *  - brief non-collide window to avoid immediate retrigger
-   */
   _enterShell(player) {
     if (this.mode !== "walk" || this._modeCooldown) return;
     this._modeCooldown = true;
 
-    this.mode = "shell";
-    this.setVelocityX(0);
-
     const tex = this.scene.textures.get(this.texture.key);
-    if (tex && tex.frameTotal >= 3) {
-      this.setFrame(2);
-      if (this.body && this.body.setSize) {
-        this.body.setSize(this.frame.realWidth, this.frame.realHeight, true);
-      }
+    if (tex && tex.frameTotal >= 3) this.setFrame(2);
+    this.clearTint();
+
+    // Walking hazard off; shell contact handled in onPlayerCollide
+    this.hazardous = false;
+
+    // Let it FALL: disable platform collider, but keep body collidable with PLAYER
+    if (this._groundCollider) this._groundCollider.active = false;
+    if (this.body) {
+      this.body.allowGravity = true;
+      this.body.setVelocityX(0);
+      this.body.checkCollision.none = false; // keep colliding with player
     }
-    this.setTint(0x777777);
+
+    this.mode = "shell";
+    this._setDir(0);
 
     if (player?.body) player.setVelocityY(-220);
 
-    if (this.body) {
-      this.body.checkCollision.none = true;
-      this.scene.time.delayedCall(80, () => {
-        if (this.body) this.body.checkCollision.none = false;
-        this._modeCooldown = false;
-      });
+    this._modeCooldown = false;
+  }
+
+  _setDir(dir) {
+    this._dir = dir;
+
+    const canMove = (this.mode == null || this.mode === "walk");
+    if (dir === 0 || !canMove) {
+      this.setVelocityX(0);
     } else {
-      this._modeCooldown = false;
+      const speed = this.speed ?? 42;
+      this.setVelocityX(speed * dir);
     }
+
+    const facesRight = (this.constructor.FACES_RIGHT !== false);
+    if (dir !== 0) {
+      const flip = (dir > 0) ? !facesRight : facesRight;
+      this.setFlipX(flip);
+    }
+  }
+
+  _snapSpriteToPlatform(platform) {
+    const platformTop = platform.y - platform.displayHeight / 2;
+    this.y = platformTop - this._GAP;
   }
 }

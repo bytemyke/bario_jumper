@@ -38,11 +38,11 @@ export default class Stump extends Phaser.Physics.Arcade.Sprite {
     super(scene, x, y, finalKey ?? "basic_3", 0);
 
     scene.add.existing(this);
-
+    
     // If spritesheet was correctly sliced (>1 frames), force frame 0.
     {
       const tex = scene.textures.get(this.texture.key);
-      if (tex && tex.frameTotal > 1) this.setFrame(0);
+      if (tex && tex.frameTotal > 1) this.setFrame(0, true, true);
     }
 
     scene.physics.add.existing(this);
@@ -60,6 +60,7 @@ export default class Stump extends Phaser.Physics.Arcade.Sprite {
 
     this.setBounce(0).setCollideWorldBounds(false);
     this.setVelocityX(Math.random() < 0.5 ? -this.speed : this.speed);
+    this._updateFacing();
 
     // Ensure the physics body matches the current frame (16x16)
     if (this.body && this.body.setSize) {
@@ -98,6 +99,8 @@ export default class Stump extends Phaser.Physics.Arcade.Sprite {
 
     if (this.x <= this.leftBound)  this.setVelocityX(Math.abs(this.speed));
     if (this.x >= this.rightBound) this.setVelocityX(-Math.abs(this.speed));
+    this._updateFacing();
+    
   }
 
   /**
@@ -120,7 +123,11 @@ export default class Stump extends Phaser.Physics.Arcade.Sprite {
       const hasThreeFrames = !!tex && tex.frameTotal >= 3;
       if (hasThreeFrames) {
         // use the "flatten" frame (convention: index 2)
-        this.setFrame(2);
+        this.setFrame(2, true, true);
+        this.setOrigin(0.5, 1);
+        const platTop = this.homePlatform.y - this.homePlatform.displayHeight / 2;
+this.x = Math.round(this.x);
+this.y = Math.round(platTop);
       } else {
         // visual fallback: squash vertically
         this.setScale(1, 0.6);
@@ -157,4 +164,10 @@ export default class Stump extends Phaser.Physics.Arcade.Sprite {
     const vy = player.body.velocity?.y ?? 0;
     return vy > 0 && player.y < this.y - this.displayHeight * 0.25;
   }
+  _updateFacing() {
+  const vx = this.body?.velocity?.x ?? 0;
+  if (vx > 0) this.setFlipX(false);
+  else if (vx < 0) this.setFlipX(true);
+}
+
 }
