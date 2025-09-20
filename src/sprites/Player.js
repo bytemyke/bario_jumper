@@ -4,15 +4,16 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y) {
     super(scene, x, y, "mini_player");
     // --- Damage/health ---
-this.maxHealth = 1;       // change to 3 if you want HP
-this.health = this.maxHealth;
-this._invuln = false;     // i-frames flag
+    this.maxHealth = 1;       // change to 3 if you want HP
+    this.health = this.maxHealth;
+    this._invuln = false;     // i-frames flag
 
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(1);
     this.scene = scene;
     this.createParticleEmitters();
+
     // Cam added: Give this Player to scene-wide spring events so we can start/stop its spring animation/state.
     const onSpringStart = ({ player /*, spring */ }) => {
       if (player !== this) return; // only react if THIS player triggered the spring
@@ -77,6 +78,22 @@ this._invuln = false;     // i-frames flag
         this._boundSpringListeners = false;
       });
     }
+
+    // ───────────────────────────────────────────────────────────────
+    // accounting for big bario - cam
+    // PSEUDOCODE (added):
+    // - Lock origin to feet so the collider can align exactly to the soles.
+    // - Build a feet-aligned collider with *zero* foot padding (prevents
+    //   the “sitting in platform” look).
+    // - Keep collider in sync on frame changes.
+    // ───────────────────────────────────────────────────────────────
+    this.setOrigin(0.5, 1); // feet-locked origin
+    this.setData("form", "mini");
+    applyColliderProfileFeetLocked(this, "mini");
+    this.off(Phaser.Animations.Events.ANIMATION_UPDATE, this._onFrameUpdate, this);
+    this._onFrameUpdate = () => applyColliderProfileFeetLocked(this, this.getData("form") || "mini");
+    this.on(Phaser.Animations.Events.ANIMATION_UPDATE, this._onFrameUpdate, this);
+    this.setRoundPixels?.(true);
   }
   //End of code block cam added to account for springs
 
@@ -99,8 +116,6 @@ this._invuln = false;     // i-frames flag
     }
   }
 
-
-  
   onAnimComplete(anim) {
     if (anim.key !== "transform_mini") return;
 
@@ -114,7 +129,19 @@ this._invuln = false;     // i-frames flag
   setMode(mode, w, h) {
     this.current_mode = mode;
     this.setTexture(`${mode}_player`, 0);
-    this.body.setSize(w, h).setOffset(0, 0);
+
+    // ───────────────────────────────────────────────────────────────
+    // accounting for big bario - cam
+    // PSEUDOCODE (modified):
+    // - Rebuild a feet-aligned collider with no foot padding so
+    //   the visual feet sit flush on platform tops.
+    // - Keep it synced during animation frame changes.
+    // ───────────────────────────────────────────────────────────────
+    applyColliderProfileFeetLocked(this, mode);
+    this.off(Phaser.Animations.Events.ANIMATION_UPDATE, this._onFrameUpdate, this);
+    this._onFrameUpdate = () => applyColliderProfileFeetLocked(this, mode);
+    this.on(Phaser.Animations.Events.ANIMATION_UPDATE, this._onFrameUpdate, this);
+
     this.body.allowGravity = true;
 
     this.isTransforming = false;
@@ -291,38 +318,81 @@ this._invuln = false;     // i-frames flag
   }
 
   takeDamage(amount = 1) {
-  // already blinking? ignore hit
-  if (this._invuln) return;
+    // already blinking? ignore hit
+    if (this._invuln) return;
 
-  // optional: route through UpgradeManager if you’re using it
-  if (this.scene?.upgrades?.handleDamage) {
-    this.scene.upgrades.handleDamage();
-  }
+    // optional: route through UpgradeManager if you’re using it
+    if (this.scene?.upgrades?.handleDamage) {
+      this.scene.upgrades.handleDamage();
+    }
 
-  this.health -= amount;
+    this.health -= amount;
 
-  // quick hit flash
-  this.setTint(0xff6666);
-  this.scene.time.delayedCall(120, () => this.clearTint());
+    // quick hit flash
+    this.setTint(0xff6666);
+    this.scene.time.delayedCall(120, () => this.clearTint());
 
-  // death or i-frames
-  if (this.health <= 0) {
-    // ensure we don’t process more collisions during scene swap
+    // death or i-frames
+    if (this.health <= 0) {
+      // ensure we don’t process more collisions during scene swap
+      this._invuln = true;
+      this.scene?.gameOver?.();
+      return;
+    }
+
+    // brief invulnerability to avoid multi-hit in same frame
     this._invuln = true;
-    this.scene?.gameOver?.();
-    return;
+    // tiny knockback feels better if body exists
+    if (this.body) this.setVelocityY(-180);
+    this.scene.time.delayedCall(800, () => { this._invuln = false; });
   }
-
-  // brief invulnerability to avoid multi-hit in same frame
-  this._invuln = true;
-  // tiny knockback feels better if body exists
-  if (this.body) this.setVelocityY(-180);
-  this.scene.time.delayedCall(800, () => { this._invuln = false; });
-}
 
   die() {
     // attempting to make sure the player doesn't die in spring mode
     if (this._springActive) return;
     this.setTint(0xff0000).play("die");
   }
+}
+
+/* =========================================================================
+   ─────────────────────────────────────────────────────────────────────────
+   accounting for big bario - cam
+   PSEUDOCODE (added helper; feet-locked, minimal):
+   - Zero foot padding so the body bottom is flush with sprite feet.
+   - Use frame cut sizes; center horizontally; align body bottom to feet.
+   - Round X to curb 1px ledge artifacts; keep Y continuous for gravity.
+   ─────────────────────────────────────────────────────────────────────────
+   ========================================================================= */
+
+const COLLIDER = {
+  mini: { sidePad: 1, headPad: 1, footPad: 0 }, // footPad = 0 => no “sitting”
+  big:  { sidePad: 1, headPad: 1, footPad: 0 },
+};
+
+function applyColliderProfileFeetLocked(player, form /* 'mini' | 'big' */) {
+  if (!player?.body) return;
+
+  const { sidePad, headPad, footPad } = COLLIDER[form] || COLLIDER.mini;
+
+  // Prefer trimmed frame sizes to avoid transparent padding
+  const frameW = player.frame?.cutWidth ?? player.width;
+  const frameH = player.frame?.cutHeight ?? player.height;
+
+  // Tight but safe body; never below 4px
+  const bodyW = Math.max(4, Math.round(frameW - 2 * sidePad));
+  const bodyH = Math.max(4, Math.round(frameH - (headPad + footPad)));
+
+  // Size and recenter (origin is feet-locked 0.5,1)
+  player.body.setSize(bodyW, bodyH, true);
+
+  // Feet alignment: center X; bottom of body sits exactly at sprite bottom
+  const ox = Math.round((frameW - bodyW) * 0.5);
+  const oy = Math.round(frameH - bodyH - footPad); // footPad = 0 ⇒ flush
+  player.body.setOffset(ox, oy);
+
+  // Snap X to integer to reduce snag edges (keep Y continuous)
+  player.setX(Math.round(player.x));
+
+  player.refreshBody?.();
+  player.body.syncBounds = true;
 }
