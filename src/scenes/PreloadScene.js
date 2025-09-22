@@ -77,7 +77,7 @@ export default class PreloadScene extends Phaser.Scene {
       "stump_brown",
       "cartoon/sprites/enemies/stump_brown.png",
       {
-        frameWidth: 16,
+        frameWidth: 17,
         frameHeight: 16,
         spacing: 2,
       }
@@ -86,35 +86,35 @@ export default class PreloadScene extends Phaser.Scene {
       "stump_red",
       "cartoon/sprites/enemies/stump_red.png",
       {
-        frameWidth: 16,
+        frameWidth: 18,
         frameHeight: 16,
-        spacing: 2,
+        spacing: 0,
       }
     );
     this.load.spritesheet(
       "stump_blue",
       "cartoon/sprites/enemies/stump_blue.png",
       {
-        frameWidth: 16,
+        frameWidth: 18,
         frameHeight: 16,
-        spacing: 2,
+        spacing: 0,
       }
     );
     this.load.spritesheet(
       "spikeyShell_yellow",
       "cartoon/sprites/enemies/spikeyShell_yellow.png",
-      { frameWidth: 16, frameHeight: 16 }
+      { frameWidth: 18, frameHeight: 16 }
     );
     // =SmallShell sprites= (3x1; per-frame is 16x16)
     this.load.spritesheet(
       "smallShell_blue",
       "cartoon/sprites/enemies/smallShell_blue.png",
-      { frameWidth: 16, frameHeight: 16 , spacing: 2}
+      { frameWidth: 18, frameHeight: 17 , spacing: 0}
     );
     this.load.spritesheet(
       "smallShell_darkGrey",
       "cartoon/sprites/enemies/smallShell_darkGrey.png",
-      { frameWidth: 16, frameHeight: 16, spacing: 2 }
+      { frameWidth: 18, frameHeight: 17, spacing: 0 }
     );
     this.load.spritesheet(
       "bigShell_red",
