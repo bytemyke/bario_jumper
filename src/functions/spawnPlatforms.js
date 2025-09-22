@@ -9,6 +9,8 @@ import { maybeAttachEnemy } from "../functions/spawnEnemies";
 /* ---------------- Tunables (density & difficulty) ---------------- */
 
 // Hard cap on total platforms alive
+
+
 const PLATFORM_POOL_CAP = 18; // a touch higher to allow more optionals
 
 // Max platforms allowed in the camera view at once
@@ -36,6 +38,55 @@ const V_SPACING_PLAYER_MULT = 4.8;
 
 // Extra horizontal offset when a narrow sits below a much wider one
 const HEAD_CLEAR_FRAC = 0.6;
+
+// --- Anti-pinch history buffer for *core* platforms only ---
+const CORE_HISTORY_MAX = 12;
+let coreHistory = [];
+
+
+// --- Clearance tunables to account for big bario ---
+const V_CLEAR_MULT   = 1.25;  // vertical headroom multiplier vs tallest player
+const H_CLEAR_MULT   = 0.75;  // horizontal shoulder room vs widest player
+const PINCH_Y_CUTOFF = 1.35;  // only apply pinch check when platforms are this close vertically (× player height)
+
+// Return *max so far* player body dims, robust to mini/big swaps at runtime
+function getMaxPlayerDims(scene) {
+  const p = scene.player;
+  // runtime body is best truth
+  const bh = p?.body?.height ?? 33; // fallback to big frame
+  const bw = p?.body?.width  ?? 18;
+  // keep a rolling max so we’re always safe for both forms
+  const maxH = Math.max(bh, p?.getData('maxH') ?? 0, 33);
+  const maxW = Math.max(bw, p?.getData('maxW') ?? 0, 18);
+  p?.setData('maxH', maxH);
+  p?.setData('maxW', maxW);
+  return { maxH, maxW };
+}
+
+// Rejects candidate if it would create a pinch for Big Bario given nearby core platforms
+function isPinchFreeForBig(scene, candX, candY, candWidth, neighbors /* core platforms only */) {
+  const { maxH, maxW } = getMaxPlayerDims(scene);
+  const vClear = maxH * V_CLEAR_MULT;
+  const hClear = maxW * H_CLEAR_MULT;
+
+  for (const n of neighbors) {
+    // Only care about platforms within a short vertical band
+    const vGap = Math.abs(n.y - candY);
+    if (vGap > maxH * PINCH_Y_CUTOFF) continue;
+
+    const halfSum = (n.displayWidth + candWidth) * 0.5;
+    const hGap = Math.abs(n.x - candX);
+    const horizontalOverlap = halfSum - hGap; // >0 means they overlap horizontally
+
+    // If the vertical gap is small, we require the "overlap" to be small enough
+    // to let Big Bario's shoulders through.
+    if (vGap < vClear && horizontalOverlap > hClear) {
+      return false; // would create a slit too narrow for Big Bario
+    }
+  }
+  return true;
+}
+
 
 /* ---------------- Optional platform policy (more, but out of the way) ---------------- */
 
@@ -211,6 +262,48 @@ function seedFullScreen(scene, player, h, reach, camTop, camBot, bandTop, bandBo
   const maxGap = GAP_MAX_FRAC * h;
   const topLimit = camTop + 12;
 
+//   Ensures no platform lies in the head-bonk band directly above
+  //   this essential rung for Big Bario (uses current/remembered max
+  //   player body dims). Minimal scan; skips destroyed/inactive.
+  //   Returns true if clear, false if a bonk hazard exists.
+  // ───────────────────────────────────────────────────────────────
+  const _headroomOK = (x, y, width) => {
+    // read or infer Big Bario dims; prefer body when available
+    const bh = player?.body?.height ?? 33;
+    const bw = player?.body?.width  ?? 18;
+    const maxH = Math.max(bh, player?.getData?.("maxH") ?? 33);
+    const maxW = Math.max(bw, player?.getData?.("maxW") ?? 18);
+    player?.setData?.("maxH", maxH);
+    player?.setData?.("maxW", maxW);
+
+    const vClear = maxH * 1.12;   // ~12% buffer above Big’s height
+    const hClear = maxW * 0.70;   // shoulders clearance threshold
+
+    // Scan existing platforms a short distance above candidate
+    // NOTE: if you track platforms elsewhere, you can swap this list.
+    const list = scene.children.list;
+    for (let i = 0; i < list.length; i++) {
+      const p = list[i];
+      if (!p || !p.active || !p.body || p === player) continue;
+      // only consider sprites that behave as platforms
+      if (typeof p.isEssential === "undefined" && typeof p.displayWidth === "undefined") continue;
+
+      // only platforms ABOVE current candidate within headroom band
+      if (p.y >= y || (y - p.y) > vClear) continue;
+
+      // horizontal overlap test
+      const halfSum = 0.5 * ((p.displayWidth ?? p.width ?? 0) + width);
+      const hGap = Math.abs((p.x ?? 0) - x);
+      const horizontalOverlap = halfSum - hGap; // >0 means overlap
+
+      if (horizontalOverlap > hClear) {
+        return false; // would bonk Big's head
+      }
+    }
+    return true;
+  };
+
+
   // First rung near bottom of band
   const firstY = Phaser.Math.Linear(bandTop, bandBot, 0.90);
   const firstXMin = Math.max(X_PADDING, player.x - reach * 0.6);
@@ -220,16 +313,32 @@ function seedFullScreen(scene, player, h, reach, camTop, camBot, bandTop, bandBo
   let placedFirst = false;
   for (let i = 0; i < MAX_TRIES; i++) {
     const x = Phaser.Math.FloatBetween(firstXMin, firstXMax);
-    if (placeAt(scene, p1, x, firstY, player, h, reach)) { placedFirst = true; break; }
+    if (placeAt(scene, p1, x, firstY, player, h, reach)) {
+      // --- Anti-pinch gate for the very first essential rung ---
+      // Use the candidate's width after placeAt() positioned it.
+      const candWidth = p1.displayWidth ?? p1.width ?? 96;
+      if (!isPinchFreeForBig(scene, x, firstY, candWidth, coreHistory)) {
+        // reject and try another sample; do not accept this placement
+        continue;
+      }
+      placedFirst = true;
+      break;
+    }
   }
-  if (!placedFirst) { p1.destroy(); return; }
+  if (!placedFirst) {
+    p1.destroy();
+    return;
+  }
   p1.isEssential = true;
   p1.refreshBody?.();
-  //Cam added: enemy eligibility evaluation 
-  maybeAttachEnemy(scene, p1);
-// Cam added: Evaluate spring eligibility for the very first essential platform.
-maybeAttachSpring(scene, player, p1, { isEssential: true, prevEssential: null });
+  // Track in *core* history buffer
+  coreHistory.push(p1);
+  if (coreHistory.length > CORE_HISTORY_MAX) coreHistory.shift();
 
+  // Cam added: enemy eligibility evaluation 
+  maybeAttachEnemy(scene, p1);
+  // Cam added: Evaluate spring eligibility for the very first essential platform.
+  maybeAttachSpring(scene, player, p1, { isEssential: true, prevEssential: null });
 
   let prev = p1;
   let safetyCounter = 0;
@@ -258,6 +367,12 @@ maybeAttachSpring(scene, player, p1, { isEssential: true, prevEssential: null })
       const relax = relaxFactorForTry(Math.max(RELAX_START_TRY, t));
       if (!canPlaceWithSpacing(scene, x, y, next, player, relax)) continue;
 
+      // --- Anti-pinch gate for core rung ---
+      const candWidth = next.displayWidth ?? next.width ?? 96;
+      if (!isPinchFreeForBig(scene, x, y, candWidth, coreHistory)) {
+        continue; // reject and resample
+      }
+
       next.setPosition(x, y);
       next.isEssential = true;
       next.refreshBody?.();
@@ -268,11 +383,15 @@ maybeAttachSpring(scene, player, p1, { isEssential: true, prevEssential: null })
     if (ok) {
       next.isEssential = true;
       next.refreshBody?.();
+
+      // Track in *core* history buffer
+      coreHistory.push(next);
+      if (coreHistory.length > CORE_HISTORY_MAX) coreHistory.shift();
+
       // Cam added: enemy eligibility evaluation
       maybeAttachEnemy(scene, next);
-     // For each new essential rung, evaluate spring eligibility and place it relative to the previous essential for “far/middle” logic.
-    maybeAttachSpring(scene, player, next, { isEssential: true, prevEssential: prev });
-
+      // For each new essential rung, evaluate spring eligibility and place it relative to the previous essential for “far/middle” logic.
+      maybeAttachSpring(scene, player, next, { isEssential: true, prevEssential: prev });
 
       // try to place up to 2 lateral optionals (left/right lanes) outside the essential corridor
       spawnLateralOptionalsBetween(scene, player, next, prev, h, reach);
@@ -294,8 +413,8 @@ maybeAttachSpring(scene, player, p1, { isEssential: true, prevEssential: null })
     const y = topLimit;
     const minX = Math.max(X_PADDING, prev.x - reach);
     const maxX = Math.min(scene.scale.width - X_PADDING, prev.x + reach);
-    //  Cache the prior essential rung so the new topLimit rung can select the “far” side from it when placing a spring.
-const prevBefore = prev;
+    // Cache the prior essential rung so the new topLimit rung can select the “far” side from it when placing a spring.
+    const prevBefore = prev;
 
     let ok = false;
     for (let t = 1; t <= MAX_TRIES; t++) {
@@ -304,16 +423,33 @@ const prevBefore = prev;
       if (dy < minGap || dy > maxGap || dx > reach) continue;
 
       if (!canPlaceWithSpacing(scene, x, y, last, player, 1.0)) continue;
+
+      // --- Anti-pinch gate for snapped core rung ---
+      const candWidth = last.displayWidth ?? last.width ?? 96;
+      if (!isPinchFreeForBig(scene, x, y, candWidth, coreHistory)) {
+        continue; // reject and resample
+      }
+
       last.setPosition(x, y);
       ok = true;
       break;
     }
-    if (ok) { last.isEssential = true; last.refreshBody?.(); prev = last; } else { last.destroy(); }
-    // Cam added: enemy eligibility evaluation
-    maybeAttachEnemy(scene, last);
-    //  The snapped essential rung is finalized—now run spring logic using the cached previous essential to respect far/middle placement.
-maybeAttachSpring(scene, player, last, { isEssential: true, prevEssential: prevBefore });
+    if (ok) {
+      last.isEssential = true;
+      last.refreshBody?.();
 
+      // Track in *core* history buffer
+      coreHistory.push(last);
+      if (coreHistory.length > CORE_HISTORY_MAX) coreHistory.shift();
+
+      prev = last;
+      // Cam added: enemy eligibility evaluation
+      maybeAttachEnemy(scene, last);
+      // The snapped essential rung is finalized—now run spring logic using the cached previous essential to respect far/middle placement.
+      maybeAttachSpring(scene, player, last, { isEssential: true, prevEssential: prevBefore });
+    } else {
+      last.destroy();
+    }
   }
 
   // Stage B: prebuild a short off-screen headroom stack
@@ -336,6 +472,12 @@ maybeAttachSpring(scene, player, last, { isEssential: true, prevEssential: prevB
 
       if (!canPlaceWithSpacing(scene, x, y, next, player, 1.0)) continue;
 
+      // --- Anti-pinch gate for headroom core rung ---
+      const candWidth = next.displayWidth ?? next.width ?? 96;
+      if (!isPinchFreeForBig(scene, x, y, candWidth, coreHistory)) {
+        continue; // reject and resample
+      }
+
       next.setPosition(x, y);
       ok = true;
       break;
@@ -344,10 +486,15 @@ maybeAttachSpring(scene, player, last, { isEssential: true, prevEssential: prevB
     if (ok) {
       next.isEssential = true;
       next.refreshBody?.();
+
+      // Track in *core* history buffer
+      coreHistory.push(next);
+      if (coreHistory.length > CORE_HISTORY_MAX) coreHistory.shift();
+
       // Cam added: enemy eligibility evaluation
       maybeAttachEnemy(scene, next);
       // For headroom essentials placed above the camera, evaluate and attach springs so newly scrolled-in rungs can have springs too.
-    maybeAttachSpring(scene, player, next, { isEssential: true, prevEssential: prev });
+      maybeAttachSpring(scene, player, next, { isEssential: true, prevEssential: prev });
 
       prev = next;
     } else {
@@ -356,6 +503,7 @@ maybeAttachSpring(scene, player, last, { isEssential: true, prevEssential: prevB
     }
   }
 }
+
 
 function spawnOneAtTopPreferOffscreen(scene, player, h, reach, camTop) {
   const minGap = GAP_MIN_FRAC * h;

@@ -79,6 +79,7 @@ export default class PreloadScene extends Phaser.Scene {
       {
         frameWidth: 16,
         frameHeight: 16,
+        spacing: 2,
       }
     );
     this.load.spritesheet(
@@ -87,6 +88,7 @@ export default class PreloadScene extends Phaser.Scene {
       {
         frameWidth: 16,
         frameHeight: 16,
+        spacing: 2,
       }
     );
     this.load.spritesheet(
@@ -95,6 +97,7 @@ export default class PreloadScene extends Phaser.Scene {
       {
         frameWidth: 16,
         frameHeight: 16,
+        spacing: 2,
       }
     );
     this.load.spritesheet(
@@ -106,22 +109,22 @@ export default class PreloadScene extends Phaser.Scene {
     this.load.spritesheet(
       "smallShell_blue",
       "cartoon/sprites/enemies/smallShell_blue.png",
-      { frameWidth: 16, frameHeight: 16 }
+      { frameWidth: 16, frameHeight: 16 , spacing: 2}
     );
     this.load.spritesheet(
       "smallShell_darkGrey",
       "cartoon/sprites/enemies/smallShell_darkGrey.png",
-      { frameWidth: 16, frameHeight: 16 }
+      { frameWidth: 16, frameHeight: 16, spacing: 2 }
     );
     this.load.spritesheet(
       "bigShell_red",
       "cartoon/sprites/enemies/bigShell_red.png",
       {
-        frameWidth: 16,
-        frameHeight: 16,
+        frameWidth: 18,
+        frameHeight: 24,
       }
     );
-  }
+      }
 
   loadAudio() {
     this.load.audio("bgm", "cco/audio/music/8-bit_mechanical_complex.mp3");
