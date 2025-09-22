@@ -4,8 +4,6 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y) {
     super(scene, x, y, "mini_player");
     // --- Damage/health ---
-    this.maxHealth = 1;       // change to 3 if you want HP
-    this.health = this.maxHealth;
     this._invuln = false;     // i-frames flag
 
     scene.add.existing(this);
@@ -326,19 +324,19 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       this.scene.upgrades.handleDamage();
     }
 
-    this.health -= amount;
+    // this.health -= amount;
 
     // quick hit flash
     this.setTint(0xff6666);
     this.scene.time.delayedCall(120, () => this.clearTint());
 
     // death or i-frames
-    if (this.health <= 0) {
-      // ensure we don’t process more collisions during scene swap
-      this._invuln = true;
-      this.scene?.gameOver?.();
-      return;
-    }
+    // if (this.health <= 0) {
+    //   // ensure we don’t process more collisions during scene swap
+    //   this._invuln = true;
+    //   this.scene?.gameOver?.();
+    //   return;
+    // }
 
     // brief invulnerability to avoid multi-hit in same frame
     this._invuln = true;
