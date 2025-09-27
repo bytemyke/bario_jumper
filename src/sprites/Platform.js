@@ -22,15 +22,15 @@ function pickWeightedRow(scene, explicitKey) {
   }
 
   // Build desired texture key: row.type + "_" + row.basic (fallback to row.blocks)
- const suffix = (chosen && (chosen.basic ?? chosen.blocks)) ?? 1; // supports either "basic" or "blocks"
-const desiredKey = `${chosen.type}_${suffix}`;
-
+  const suffix = (chosen && (chosen.basic ?? chosen.blocks)) ?? 1; // supports either "basic" or "blocks"
+  const desiredKey = `${chosen.type}_${suffix}`;
 
   // Your requested fallback: if key isn’t loaded, use "basic_3"
   const key = scene.textures.exists(desiredKey) ? desiredKey : "basic_3";
 
   return { row: chosen, key, logicalKey: desiredKey };
 }
+
 export default class Platform extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y, textureKey = null) {
     const picked = pickWeightedRow(scene, textureKey);
@@ -53,16 +53,92 @@ export default class Platform extends Phaser.Physics.Arcade.Sprite {
     this.isFalling = key.startsWith("falling_");
     this.isBasic = true; // current dataset is all "basic"
 
+    // moving plat flag
+    this.isMoving = this.typeKey?.startsWith("moving_") || key.startsWith("moving_");
+    this._moveTween = null;
+
     // Ensure physics body matches the texture frame size
     if (this.body && this.body.setSize) {
       const fw = this.frame?.realWidth ?? this.width;
       const fh = this.frame?.realHeight ?? this.height;
-            this.refreshBody?.();
+      this.refreshBody?.();
     }
 
     // Register in the scene's platforms group
     scene.platforms.add(this);
-  } 
+
+    // ===== Oscillator state (keeps EXACT same travel distance) =====
+    this._oscRange = (this.blocks >= 2) ? 72 : 48;  // same as before
+    this._oscSpeed = 60;                             // px/s (same as before)
+    this._prevCenterX = this.x;
+    this.dx = 0;
+
+    this._oscInit = false;                           // [ADDED] lazy-capture center & dir
+    // ===============================================================
+  }
+
+  // Move the sprite each frame, then sync the STATIC body to it
+  preUpdate(time, delta) {
+    super.preUpdate?.(time, delta);
+
+    const body = /** @type {Phaser.Physics.Arcade.StaticBody} */ (this.body);
+    if (!body) return;
+
+    if (this.isMoving) {
+      // [ADDED] Lazy initialization: use the REAL spawn X after spawner positioned us
+      if (!this._oscInit) {                                        // [ADDED]
+        this._oscStartX = this.x;                                  // [ADDED]
+        this._oscDir = Math.random() < 0.5 ? -1 : 1;               // [ADDED]
+        this._prevCenterX = this.x;                                // [ADDED]
+        this._oscInit = true;                                      // [ADDED]
+      }
+
+      const range = this._oscRange;
+      const minCenter = this._oscStartX - range;
+      const maxCenter = this._oscStartX + range;
+
+      // step distance this frame
+      const step = this._oscSpeed * (delta / 1000) * this._oscDir;
+
+      // compute next center x and bounce at edges
+      let nextCenter = this.x + step;
+      if (nextCenter > maxCenter) {
+        nextCenter = maxCenter - (nextCenter - maxCenter); // reflect
+        this._oscDir = -1;
+      } else if (nextCenter < minCenter) {
+        nextCenter = minCenter + (minCenter - nextCenter); // reflect
+        this._oscDir = 1;
+      }
+
+      // 1) Move the visual first
+      const oldCenter = this.x;
+      this.x = nextCenter;
+
+      // 2) Sync the static body to the GameObject (authoritative hitbox)
+      if (body.updateFromGameObject) body.updateFromGameObject();
+
+      // 3) If these are in a StaticGroup, refresh its tree so collisions use the new position
+      if (this.scene.platforms && typeof this.scene.platforms.refresh === "function") {
+        this.scene.platforms.refresh();
+      }
+
+      // Track dx for player ride-along
+      this.dx = nextCenter - (this._prevCenterX ?? nextCenter);
+      this._prevCenterX = nextCenter;
+    } else {
+      // Non-moving: compute dx (usually 0) and keep static body in sync if externally moved
+      const prev = this._prevCenterX ?? this.x;
+      this.dx = this.x - prev;
+      this._prevCenterX = this.x;
+      if (body.updateFromGameObject) body.updateFromGameObject();
+    }
+  }
+
+  //  movement helper
+  _enableAutoMove() {
+    // [REMOVED] No tweens; preUpdate drives movement and keeps hitbox bound.
+    return;
+  }
 
   /**
    * Cam added" falling platforms: log, then after a short Phaser delay, destroy this platform.
@@ -86,4 +162,3 @@ export default class Platform extends Phaser.Physics.Arcade.Sprite {
     );
   }
 } // <-- end class
-
