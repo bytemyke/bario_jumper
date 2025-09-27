@@ -70,7 +70,7 @@ export default class SmallShell extends Phaser.Physics.Arcade.Sprite {
   _initPatrolBounds() {
     const margin = 12;
     const half = this.homePlatform.displayWidth / 2;
-    this.leftBound  = this.homePlatform.x - half + margin;
+    this.leftBound = this.homePlatform.x - half + margin;
     this.rightBound = this.homePlatform.x + half - margin;
   }
 
@@ -78,49 +78,50 @@ export default class SmallShell extends Phaser.Physics.Arcade.Sprite {
     super.preUpdate(time, delta);
     if (this.mode !== "walk") return;
     if (!this.homePlatform || !this.homePlatform.active) return;
-    if (this.x <= this.leftBound)  this._setDir(+1);
+    if (this.x <= this.leftBound) this._setDir(+1);
     if (this.x >= this.rightBound) this._setDir(-1);
   }
 
- onPlayerCollide(player) {
-  if (!this.active || !this.body || !player?.body) return;
+  onPlayerCollide(player) {
+    if (!this.active || !this.body || !player?.body) return;
 
-  if (this.mode === "walk") {
-    // WALK: stomp => enter shell; else damage
-    if (this._isStomp(player)) {
-       this._enterShell(player);
-       return;
-     }
-     player?.takeDamage?.();
-     if (player?.body) player.setVelocityY(-160);
-     return;
-   }
-
-  if (this.mode === "shell") {
-    // SHELL: do NOT hurt the player
-    if (this._isStomp(player)) {
-      // Stomp on a shell => pop it (disappear) and bounce player
-      this._popAndDie(player);
+    if (this.mode === "walk") {
+      // WALK: stomp => enter shell; else damage
+      if (this._isStomp(player)) {
+        this.scene.score += 20;
+        this._enterShell(player);
+        return;
+      }
+      player?.takeDamage?.();
+      if (player?.body) player.setVelocityY(-160);
+      return;
     }
-    return; // sides/bottom in shell: no damage
+
+    if (this.mode === "shell") {
+      // SHELL: do NOT hurt the player
+      if (this._isStomp(player)) {
+        // Stomp on a shell => pop it (disappear) and bounce player
+        this._popAndDie(player);
+      }
+      return; // sides/bottom in shell: no damage
+    }
   }
-}
 
   _isStomp(player) {
-   if (!player?.body || !this?.body) return false;
-   const vy = player.body.velocity.y;        // +Y is downward in Arcade
-   const bottom = player.body.bottom;
-   const top = this.body.top;
-   // 1) must be moving downward at all (don’t require huge speed)
-   const downward = vy > 40;
-   // 2) player’s feet are above our top (with a bit of forgiveness)
-   const aboveTop = bottom <= top + 6;
-   // 3) decent horizontal overlap (forgive slight grazes)
-   const overlapX =
-     (player.body.right > this.body.left + 4) &&
-     (player.body.left  < this.body.right - 4);
-   return downward && aboveTop && overlapX;
- }
+    if (!player?.body || !this?.body) return false;
+    const vy = player.body.velocity.y; // +Y is downward in Arcade
+    const bottom = player.body.bottom;
+    const top = this.body.top;
+    // 1) must be moving downward at all (don’t require huge speed)
+    const downward = vy > 40;
+    // 2) player’s feet are above our top (with a bit of forgiveness)
+    const aboveTop = bottom <= top + 6;
+    // 3) decent horizontal overlap (forgive slight grazes)
+    const overlapX =
+      player.body.right > this.body.left + 4 &&
+      player.body.left < this.body.right - 4;
+    return downward && aboveTop && overlapX;
+  }
 
   _enterShell(player) {
     if (this.mode !== "walk" || this._modeCooldown) return;
@@ -154,16 +155,16 @@ export default class SmallShell extends Phaser.Physics.Arcade.Sprite {
 
   _setDir(dir) {
     this._dir = dir;
-    const canMove = (this.mode == null || this.mode === "walk");
+    const canMove = this.mode == null || this.mode === "walk";
     if (dir === 0 || !canMove) {
       this.setVelocityX(0);
     } else {
       const speed = this.speed ?? 50;
       this.setVelocityX(speed * dir);
     }
-    const facesRight = (this.constructor.FACES_RIGHT !== false);
+    const facesRight = this.constructor.FACES_RIGHT !== false;
     if (dir !== 0) {
-      const flip = (dir > 0) ? !facesRight : facesRight;
+      const flip = dir > 0 ? !facesRight : facesRight;
       this.setFlipX(flip);
     }
   }

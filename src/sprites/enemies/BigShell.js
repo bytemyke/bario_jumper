@@ -35,14 +35,14 @@ export default class BigShell extends Phaser.Physics.Arcade.Sprite {
     this._groundCollider = scene.physics.add.collider(this, scene.platforms);
 
     // Body sizing
-    const bodyW = Math.round(this.displayWidth * 0.90);
-    const bodyH = Math.round(this.displayHeight * 0.80);
+    const bodyW = Math.round(this.displayWidth * 0.9);
+    const bodyH = Math.round(this.displayHeight * 0.8);
     if (this.body && this.body.setSize) {
       this.body.setSize(bodyW, bodyH);
       const FOOT_BASELINE = 4;
       const baseline = FOOT_BASELINE * this.scaleY;
       const offX = (this.displayWidth - bodyW) / 2;
-      const offY = (this.displayHeight - bodyH) - baseline;
+      const offY = this.displayHeight - bodyH - baseline;
       this.body.setOffset(offX, offY);
       this.body.allowGravity = false;
       this.body.bounce.set(0);
@@ -79,17 +79,21 @@ export default class BigShell extends Phaser.Physics.Arcade.Sprite {
     ];
     const candidates = [];
     candidates.push(...variants("bigShell_red"));
-    candidates.push("spikeyShell_yellow", "spikeyShell_blue", "spikeyShell_red");
+    candidates.push(
+      "spikeyShell_yellow",
+      "spikeyShell_blue",
+      "spikeyShell_red"
+    );
     candidates.push("basic_3");
     for (const k of candidates) if (scene.textures.exists(k)) return k;
     return "basic_3";
   }
 
   _computePatrolBounds() {
-    const platHalf  = this.homePlatform.displayWidth / 2;
+    const platHalf = this.homePlatform.displayWidth / 2;
     const shellHalf = this.displayWidth / 2;
     const margin = 2;
-    this.leftBound  = this.homePlatform.x - platHalf + shellHalf + margin;
+    this.leftBound = this.homePlatform.x - platHalf + shellHalf + margin;
     this.rightBound = this.homePlatform.x + platHalf - shellHalf - margin;
   }
 
@@ -98,7 +102,7 @@ export default class BigShell extends Phaser.Physics.Arcade.Sprite {
     if (!this.homePlatform || !this.homePlatform.active) return;
 
     if (this.mode === "walk") {
-      if (this.x <= this.leftBound)  this._setDir(+1);
+      if (this.x <= this.leftBound) this._setDir(+1);
       if (this.x >= this.rightBound) this._setDir(-1);
       this._snapSpriteToPlatform(this.homePlatform);
       if (this.body) this.body.allowGravity = false;
@@ -110,43 +114,43 @@ export default class BigShell extends Phaser.Physics.Arcade.Sprite {
   }
 
   onPlayerCollide(player) {
-  if (!this.active || !this.body || !player?.body) return;
+    if (!this.active || !this.body || !player?.body) return;
 
-  if (this.mode === "walk" && this.hazardous) {
-    // WALK: stomp converts to shell, else damage
-    if (this._isStomp(player)) {
-      this._enterShell(player);
-      return;
-    }
-    player.takeDamage?.();
-    player.setVelocityY(-160);
-    return;
-  }
-
-  if (this.mode === "shell") {
-    // SHELL: do NOT hurt the player anymore
-    if (this._isStomp(player)) {
-      // Bounce player up a bit
-      player.setVelocityY(-240);
-
-      // Ensure shell is moving downward (no pass-through toggles)
-      const vy = this.body.velocity?.y ?? 0;
-      this.body.allowGravity = true;
-      this.body.setVelocityY(Math.max(vy, 420));
-
-      // keep colliding; just return
+    if (this.mode === "walk" && this.hazardous) {
+      // WALK: stomp converts to shell, else damage
+      if (this._isStomp(player)) {
+        this.scene.score += 25;
+        this._enterShell(player);
+        return;
+      }
+      player.takeDamage?.();
+      player.setVelocityY(-160);
       return;
     }
 
-    // Side/bottom contact in shell: still no damage
-    return;
-  }
-}
+    if (this.mode === "shell") {
+      // SHELL: do NOT hurt the player anymore
+      if (this._isStomp(player)) {
+        // Bounce player up a bit
+        player.setVelocityY(-240);
 
+        // Ensure shell is moving downward (no pass-through toggles)
+        const vy = this.body.velocity?.y ?? 0;
+        this.body.allowGravity = true;
+        this.body.setVelocityY(Math.max(vy, 420));
+
+        // keep colliding; just return
+        return;
+      }
+
+      // Side/bottom contact in shell: still no damage
+      return;
+    }
+  }
 
   _isStomp(player) {
     if (!player || !player.body || !this.body) return false;
-    const vy = player.body.velocity?.y ?? 0;   // +Y is downward
+    const vy = player.body.velocity?.y ?? 0; // +Y is downward
     const playerBottom = player.body.bottom;
     const shellTop = this.body.top;
     return vy > 0 && playerBottom <= shellTop + 6;
@@ -182,7 +186,7 @@ export default class BigShell extends Phaser.Physics.Arcade.Sprite {
   _setDir(dir) {
     this._dir = dir;
 
-    const canMove = (this.mode == null || this.mode === "walk");
+    const canMove = this.mode == null || this.mode === "walk";
     if (dir === 0 || !canMove) {
       this.setVelocityX(0);
     } else {
@@ -190,9 +194,9 @@ export default class BigShell extends Phaser.Physics.Arcade.Sprite {
       this.setVelocityX(speed * dir);
     }
 
-    const facesRight = (this.constructor.FACES_RIGHT !== false);
+    const facesRight = this.constructor.FACES_RIGHT !== false;
     if (dir !== 0) {
-      const flip = (dir > 0) ? !facesRight : facesRight;
+      const flip = dir > 0 ? !facesRight : facesRight;
       this.setFlipX(flip);
     }
   }

@@ -15,7 +15,6 @@ export default class GameScene extends Phaser.Scene {
     super("GameScene");
     this.score = 0;
   }
-  preload() {}
 
   create() {
     console.log(this.sound.locked); // true means audio is waiting for unlock
@@ -50,7 +49,7 @@ export default class GameScene extends Phaser.Scene {
     this.scoreText = this.add
       .text(10, 10, "Score: 0", {
         fontSize: "24px",
-        fill: "#000",
+        fill: "#5049abff",
       })
       .setScrollFactor(0);
 
@@ -61,24 +60,24 @@ export default class GameScene extends Phaser.Scene {
     this.coins = this.physics.add.group();
     this.enemies = this.physics.add.group();
 
-  //coin overlap (no separation is fine for collectibles)
-this.physics.add.overlap(
-  this.player,
-  this.coins,
-  this.collectCoin,
-  null,
-  this
-);
-// REPLACE the enemy collider so there is only ONE binding and ONE handler
-if (this.playerEnemyCollider) this.playerEnemyCollider.destroy();
-this.playerEnemyCollider = this.physics.add.collider(
-  this.player,
-  this.enemies,
-  (player, enemy) => {
-    // Null-safe: let each enemy decide stomp/damage/etc.
-    enemy?.onPlayerCollide?.(player);
-  }
-);
+    //coin overlap (no separation is fine for collectibles)
+    this.physics.add.overlap(
+      this.player,
+      this.coins,
+      this.collectCoin,
+      null,
+      this
+    );
+    // REPLACE the enemy collider so there is only ONE binding and ONE handler
+    if (this.playerEnemyCollider) this.playerEnemyCollider.destroy();
+    this.playerEnemyCollider = this.physics.add.collider(
+      this.player,
+      this.enemies,
+      (player, enemy) => {
+        // Null-safe: let each enemy decide stomp/damage/etc.
+        enemy?.onPlayerCollide?.(player);
+      }
+    );
 
     // Let the world extend far ABOVE 0 so the camera can go up
     const SKY = 100000; // big number
@@ -104,6 +103,7 @@ this.playerEnemyCollider = this.physics.add.collider(
     this.upgrades = new UpgradeManager(this, this.player, this.platforms);
   }
   update() {
+    this.scoreText.setText(`Score: ${this.score}`);
     // this.mapData.background.tilePositionY = this.cameras.main.scrollY;
     updateMap(this.mapData, this.cameras.main);
     this.player.update();
@@ -123,10 +123,8 @@ this.playerEnemyCollider = this.physics.add.collider(
     this.scoreText.setText("Score: " + this.score);
   }
 
-  hitEnemy() {
-    // this.scene.start("GameOverScene", { score: this.score });
-  }
   gameOver() {
+    this.scene.stop("GameScene");
     this.scene.start("GameOverScene", { score: this.score });
   }
 

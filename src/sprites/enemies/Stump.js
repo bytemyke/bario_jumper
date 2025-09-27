@@ -26,19 +26,20 @@ export default class Stump extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, platform, x = platform.x, color = null) {
     const chosenColor = Stump._pickColor(scene, color);
     const desiredKey = `stump_${chosenColor}`;
-    const fallbackKey = scene.textures.exists("stump_brown") ? "stump_brown" : null;
+    const fallbackKey = scene.textures.exists("stump_brown")
+      ? "stump_brown"
+      : null;
 
     const finalKey = scene.textures.exists(desiredKey)
       ? desiredKey
-      : (fallbackKey ?? (scene.textures.exists("basic_3") ? "basic_3" : null));
+      : fallbackKey ?? (scene.textures.exists("basic_3") ? "basic_3" : null);
 
     const y = platform.y - platform.displayHeight / 2 - 8;
-
     // Show the spritesheet, defaulting to frame 0 (the first column).
     super(scene, x, y, finalKey ?? "basic_3", 0);
 
     scene.add.existing(this);
-    
+
     // If spritesheet was correctly sliced (>1 frames), force frame 0.
     {
       const tex = scene.textures.get(this.texture.key);
@@ -55,7 +56,7 @@ export default class Stump extends Phaser.Physics.Arcade.Sprite {
 
     this.homePlatform = platform;
     this.speed = 45;
-    this._dying = false;  // one-shot flag when stomped
+    this._dying = false; // one-shot flag when stomped
     this._initPatrolBounds();
 
     this.setBounce(0).setCollideWorldBounds(false);
@@ -74,7 +75,9 @@ export default class Stump extends Phaser.Physics.Arcade.Sprite {
    * Choose an available color key (stump_<color>).
    */
   static _pickColor(scene, preferred) {
-    const avail = Stump.COLORS.filter(c => scene.textures.exists(`stump_${c}`));
+    const avail = Stump.COLORS.filter((c) =>
+      scene.textures.exists(`stump_${c}`)
+    );
     if (preferred && avail.includes(preferred)) return preferred;
     return avail.length ? Phaser.Utils.Array.GetRandom(avail) : "brown";
   }
@@ -85,7 +88,7 @@ export default class Stump extends Phaser.Physics.Arcade.Sprite {
   _initPatrolBounds() {
     const margin = 12;
     const half = this.homePlatform.displayWidth / 2;
-    this.leftBound  = this.homePlatform.x - half + margin;
+    this.leftBound = this.homePlatform.x - half + margin;
     this.rightBound = this.homePlatform.x + half - margin;
   }
 
@@ -97,10 +100,9 @@ export default class Stump extends Phaser.Physics.Arcade.Sprite {
     if (this._dying) return;
     if (!this.homePlatform || !this.homePlatform.active) return;
 
-    if (this.x <= this.leftBound)  this.setVelocityX(Math.abs(this.speed));
+    if (this.x <= this.leftBound) this.setVelocityX(Math.abs(this.speed));
     if (this.x >= this.rightBound) this.setVelocityX(-Math.abs(this.speed));
     this._updateFacing();
-    
   }
 
   /**
@@ -113,7 +115,7 @@ export default class Stump extends Phaser.Physics.Arcade.Sprite {
 
     if (this._isStomp(player)) {
       this._dying = true;
-
+      this.scene.score += 20;
       // Bounce the player up a bit so they separate cleanly.
       if (player?.body) player.setVelocityY(-240);
 
@@ -125,9 +127,10 @@ export default class Stump extends Phaser.Physics.Arcade.Sprite {
         // use the "flatten" frame (convention: index 2)
         this.setFrame(2, true, true);
         this.setOrigin(0.5, 1);
-        const platTop = this.homePlatform.y - this.homePlatform.displayHeight / 2;
-this.x = Math.round(this.x);
-this.y = Math.round(platTop);
+        const platTop =
+          this.homePlatform.y - this.homePlatform.displayHeight / 2;
+        this.x = Math.round(this.x);
+        this.y = Math.round(platTop);
       } else {
         // visual fallback: squash vertically
         this.setScale(1, 0.6);
@@ -165,9 +168,8 @@ this.y = Math.round(platTop);
     return vy > 0 && player.y < this.y - this.displayHeight * 0.25;
   }
   _updateFacing() {
-  const vx = this.body?.velocity?.x ?? 0;
-  if (vx > 0) this.setFlipX(false);
-  else if (vx < 0) this.setFlipX(true);
-}
-
+    const vx = this.body?.velocity?.x ?? 0;
+    if (vx > 0) this.setFlipX(false);
+    else if (vx < 0) this.setFlipX(true);
+  }
 }
