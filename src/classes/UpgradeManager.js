@@ -16,7 +16,7 @@ export default class UpgradeManager {
       null,
       this
     );
-     this.spawnMushroom()
+    this.spawnMushroom();
     // Spawn timer
     this.scene.time.addEvent({
       delay: 10000, // check every 10s
@@ -24,13 +24,13 @@ export default class UpgradeManager {
       callback: () => this.trySpawn(),
     });
   }
-  
+
   trySpawn() {
     const chance = Phaser.Math.Between(1, 100);
 
     if (this.player.current_mode === "mini" && chance < 30) {
       this.spawnMushroom();
-    } 
+    }
   }
 
   spawnMushroom() {
@@ -39,36 +39,14 @@ export default class UpgradeManager {
     this.upgrades.add(mushroom);
   }
 
-
   handleCollision(player, upgrade) {
     if (upgrade.texture.key === "mushroom" && player.current_mode === "mini") {
       this.applyUpgrade("big", upgrade);
-    } 
+    }
   }
 
   applyUpgrade(newMode, upgrade) {
     upgrade.destroy();
-    this.player.changeMode( newMode);
-  }
-
-  handleDamage() {
-    this.scene.physics.world.pause();
-
-    if (this.player.current_mode === "fire") {
-      this.player.anims.play("hurt");
-      this.scene.time.delayedCall(1000, () => {
-        this.player.changeMode("big");
-        this.scene.physics.world.resume();
-      });
-    } else if (this.player.current_mode === "big") {
-      this.player.anims.play("hurt");
-      this.scene.time.delayedCall(1000, () => {
-        this.player.changeMode("mini");
-        this.scene.physics.world.resume();
-      });
-    } else {
-      this.player.die();
-      // you can trigger game over here
-    }
+    this.player.changeMode(newMode);
   }
 }

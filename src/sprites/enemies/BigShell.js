@@ -140,6 +140,7 @@ export default class BigShell extends Phaser.Physics.Arcade.Sprite {
 
     if (this.mode === "walk" && this.hazardous) {
       if (this._isStomp(player)) {
+        this.scene.score += 20;
         this._enterShell(player);
         return;
       }

@@ -4,7 +4,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y) {
     super(scene, x, y, "mini_player");
     // --- Damage/health ---
-    this._invuln = false;     // i-frames flag
+    this._invuln = false; // i-frames flag
 
     scene.add.existing(this);
     scene.physics.add.existing(this);
@@ -88,16 +88,25 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.setOrigin(0.5, 1); // feet-locked origin
     this.setData("form", "mini");
     applyColliderProfileFeetLocked(this, "mini");
-    this.off(Phaser.Animations.Events.ANIMATION_UPDATE, this._onFrameUpdate, this);
-    this._onFrameUpdate = () => applyColliderProfileFeetLocked(this, this.getData("form") || "mini");
-    this.on(Phaser.Animations.Events.ANIMATION_UPDATE, this._onFrameUpdate, this);
+    this.off(
+      Phaser.Animations.Events.ANIMATION_UPDATE,
+      this._onFrameUpdate,
+      this
+    );
+    this._onFrameUpdate = () =>
+      applyColliderProfileFeetLocked(this, this.getData("form") || "mini");
+    this.on(
+      Phaser.Animations.Events.ANIMATION_UPDATE,
+      this._onFrameUpdate,
+      this
+    );
     this.setRoundPixels?.(true);
   }
   //End of code block cam added to account for springs
 
   // ====== MODE HANDLING ======
   changeMode(newMode) {
-    if(this.current_mode !== "mini"){
+    if (this.current_mode !== "mini") {
       this.scene.score += 100;
       return;
     }
@@ -108,8 +117,8 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       this.body.allowGravity = false;
       this.anims.stop();
       this.scene.physics.world.pause();
-      this.setTexture("mini_to_big", 0);
-      this.y -= 15;
+      this.setTexture("mini_to_big", 8);
+      // this.y -= 15;
       this.play("transform_mini");
     }
   }
@@ -136,9 +145,17 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     // - Keep it synced during animation frame changes.
     // ───────────────────────────────────────────────────────────────
     applyColliderProfileFeetLocked(this, mode);
-    this.off(Phaser.Animations.Events.ANIMATION_UPDATE, this._onFrameUpdate, this);
+    this.off(
+      Phaser.Animations.Events.ANIMATION_UPDATE,
+      this._onFrameUpdate,
+      this
+    );
     this._onFrameUpdate = () => applyColliderProfileFeetLocked(this, mode);
-    this.on(Phaser.Animations.Events.ANIMATION_UPDATE, this._onFrameUpdate, this);
+    this.on(
+      Phaser.Animations.Events.ANIMATION_UPDATE,
+      this._onFrameUpdate,
+      this
+    );
 
     this.body.allowGravity = true;
 
@@ -315,40 +332,43 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
-  takeDamage(amount = 1) {
+  takeDamage() {
     // already blinking? ignore hit
     if (this._invuln) return;
 
-    // optional: route through UpgradeManager if you’re using it
-    if (this.scene?.upgrades?.handleDamage) {
-      this.scene.upgrades.handleDamage();
-    }
-
-    // this.health -= amount;
-
-    // quick hit flash
+    // hit tint
     this.setTint(0xff6666);
-    this.scene.time.delayedCall(120, () => this.clearTint());
-
-    // death or i-frames
-    // if (this.health <= 0) {
-    //   // ensure we don’t process more collisions during scene swap
-    //   this._invuln = true;
-    //   this.scene?.gameOver?.();
-    //   return;
-    // }
-
     // brief invulnerability to avoid multi-hit in same frame
     this._invuln = true;
     // tiny knockback feels better if body exists
     if (this.body) this.setVelocityY(-180);
-    this.scene.time.delayedCall(800, () => { this._invuln = false; });
+
+    if (this.current_mode !== "big") {
+      return this.die();
+    }
+
+    this.isTransforming = true;
+    this.body.setVelocity(0, 0);
+    this.body.allowGravity = false;
+    this.anims.stop();
+    this.scene.physics.world.pause();
+    this.setTexture("mini_to_big");
+    this.y -= 15;
+    this.anims.reverse("transform_mini");
+    this.play("transform_mini");
+
+    this.scene.time.delayedCall(120, () => this.clearTint());
+
+    this.scene.time.delayedCall(800, () => {
+      this._invuln = false;
+    });
   }
 
   die() {
     // attempting to make sure the player doesn't die in spring mode
     if (this._springActive) return;
     this.setTint(0xff0000).play("die");
+    this.scene.gameOver();
   }
 }
 
@@ -364,7 +384,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
 const COLLIDER = {
   mini: { sidePad: 1, headPad: 1, footPad: 0 }, // footPad = 0 => no “sitting”
-  big:  { sidePad: 1, headPad: 1, footPad: 0 },
+  big: { sidePad: 1, headPad: 1, footPad: 0 },
 };
 
 function applyColliderProfileFeetLocked(player, form /* 'mini' | 'big' */) {

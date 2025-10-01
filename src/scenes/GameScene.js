@@ -5,6 +5,7 @@ import Player from "../sprites/Player";
 import {
   spawnPlatforms,
   initializePlatforms,
+  resetPlatformState,
 } from "../functions/spawnPlatforms";
 import { createMap, updateMap } from "../functions/createMap";
 import UpgradeManager from "../classes/UpgradeManager";
@@ -15,9 +16,13 @@ export default class GameScene extends Phaser.Scene {
     super("GameScene");
     this.score = 0;
   }
-  preload() {}
 
   create() {
+    resetPlatformState();
+    this.events.once("shutdown", () => {
+      this.resetGame();
+    });
+
     console.log(this.sound.locked); // true means audio is waiting for unlock
     this.cameras.main.roundPixels = true;
 
@@ -50,7 +55,7 @@ export default class GameScene extends Phaser.Scene {
     this.scoreText = this.add
       .text(10, 10, "Score: 0", {
         fontSize: "24px",
-        fill: "#000",
+        fill: "#5049abff",
       })
       .setScrollFactor(0);
 
@@ -61,24 +66,24 @@ export default class GameScene extends Phaser.Scene {
     this.coins = this.physics.add.group();
     this.enemies = this.physics.add.group();
 
-  //coin overlap (no separation is fine for collectibles)
-this.physics.add.overlap(
-  this.player,
-  this.coins,
-  this.collectCoin,
-  null,
-  this
-);
-// REPLACE the enemy collider so there is only ONE binding and ONE handler
-if (this.playerEnemyCollider) this.playerEnemyCollider.destroy();
-this.playerEnemyCollider = this.physics.add.collider(
-  this.player,
-  this.enemies,
-  (player, enemy) => {
-    // Null-safe: let each enemy decide stomp/damage/etc.
-    enemy?.onPlayerCollide?.(player);
-  }
-);
+    //coin overlap (no separation is fine for collectibles)
+    this.physics.add.overlap(
+      this.player,
+      this.coins,
+      this.collectCoin,
+      null,
+      this
+    );
+    // REPLACE the enemy collider so there is only ONE binding and ONE handler
+    if (this.playerEnemyCollider) this.playerEnemyCollider.destroy();
+    this.playerEnemyCollider = this.physics.add.collider(
+      this.player,
+      this.enemies,
+      (player, enemy) => {
+        // Null-safe: let each enemy decide stomp/damage/etc.
+        enemy?.onPlayerCollide?.(player);
+      }
+    );
 
     // Let the world extend far ABOVE 0 so the camera can go up
     const SKY = 100000; // big number
@@ -104,6 +109,7 @@ this.playerEnemyCollider = this.physics.add.collider(
     this.upgrades = new UpgradeManager(this, this.player, this.platforms);
   }
   update() {
+    this.scoreText.setText(`Score: ${this.score}`);
     // this.mapData.background.tilePositionY = this.cameras.main.scrollY;
     updateMap(this.mapData, this.cameras.main);
     this.player.update();
@@ -123,10 +129,8 @@ this.playerEnemyCollider = this.physics.add.collider(
     this.scoreText.setText("Score: " + this.score);
   }
 
-  hitEnemy() {
-    // this.scene.start("GameOverScene", { score: this.score });
-  }
   gameOver() {
+    this.scene.stop("GameScene");
     this.scene.start("GameOverScene", { score: this.score });
   }
 
@@ -198,5 +202,38 @@ this.playerEnemyCollider = this.physics.add.collider(
       .on("pointerout", () => (this.controls.up = false))
       .setScale(1.5)
       .setPipeline("TextureTintPipeline");
+  }
+  resetGame() {
+    // Defensive destroy: no `.clear()` because physics may be gone
+    if (this.platforms) {
+      try {
+        this.platforms.getChildren().forEach((child) => child.destroy());
+        this.platforms.destroy(true);
+      } catch (e) {
+        console.warn("Failed to destroy platforms group:", e);
+      }
+      this.platforms = null;
+    }
+
+    if (this.coins) {
+      try {
+        this.coins.clear(true, true);
+      } catch {}
+      this.coins = null;
+    }
+
+    if (this.enemies) {
+      try {
+        this.enemies.clear(true, true);
+      } catch {}
+      this.enemies = null;
+    }
+
+    if (this.springs) {
+      try {
+        this.springs.clear(true, true);
+      } catch {}
+      this.springs = null;
+    }
   }
 }

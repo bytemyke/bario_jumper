@@ -112,6 +112,7 @@ export default class Stump extends Phaser.Physics.Arcade.Sprite {
     if (this._dying) return;
 
     if (this._isStomp(player)) {
+      this.scene.score += 15;
       this._dying = true;
 
       // Bounce the player up a bit so they separate cleanly.
