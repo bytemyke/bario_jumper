@@ -5,6 +5,7 @@ import Player from "../sprites/Player";
 import {
   spawnPlatforms,
   initializePlatforms,
+  resetPlatformState,
 } from "../functions/spawnPlatforms";
 import { createMap, updateMap } from "../functions/createMap";
 import UpgradeManager from "../classes/UpgradeManager";
@@ -17,6 +18,11 @@ export default class GameScene extends Phaser.Scene {
   }
 
   create() {
+    resetPlatformState();
+    this.events.once("shutdown", () => {
+      this.resetGame();
+    });
+
     console.log(this.sound.locked); // true means audio is waiting for unlock
     this.cameras.main.roundPixels = true;
 
@@ -196,5 +202,38 @@ export default class GameScene extends Phaser.Scene {
       .on("pointerout", () => (this.controls.up = false))
       .setScale(1.5)
       .setPipeline("TextureTintPipeline");
+  }
+  resetGame() {
+    // Defensive destroy: no `.clear()` because physics may be gone
+    if (this.platforms) {
+      try {
+        this.platforms.getChildren().forEach((child) => child.destroy());
+        this.platforms.destroy(true);
+      } catch (e) {
+        console.warn("Failed to destroy platforms group:", e);
+      }
+      this.platforms = null;
+    }
+
+    if (this.coins) {
+      try {
+        this.coins.clear(true, true);
+      } catch {}
+      this.coins = null;
+    }
+
+    if (this.enemies) {
+      try {
+        this.enemies.clear(true, true);
+      } catch {}
+      this.enemies = null;
+    }
+
+    if (this.springs) {
+      try {
+        this.springs.clear(true, true);
+      } catch {}
+      this.springs = null;
+    }
   }
 }

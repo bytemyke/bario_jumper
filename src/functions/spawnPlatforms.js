@@ -975,3 +975,7 @@ function canReach(x0, y0, x1, y1, maxH, reach) {
   const dx = Math.abs(x1 - x0);
   return dy > 0 && dy <= maxH && dx <= reach;
 }
+
+export function resetPlatformState() {
+  coreHistory = [];
+}

@@ -66,19 +66,32 @@ export default class GameOverScene extends Phaser.Scene {
       },
     });
 
-    // --- Enable restart after 5 seconds ---
+    const restartGame = () => {
+      // If GameScene is active, stop it (triggers its shutdown)
+      if (
+        this.scene.isActive("GameScene") ||
+        this.scene.isSleeping("GameScene")
+      ) {
+        try {
+          this.scene.stop("GameScene");
+        } catch (e) {
+          console.warn(e);
+        }
+      }
+
+      // Start a fresh GameScene instance
+      this.scene.start("GameScene");
+
+      // Stop GameOverScene if you want
+      this.scene.stop("GameOverScene");
+    };
+
+    // enable input after your 5s delay:
     this.time.delayedCall(5000, () => {
       this.promptText.setVisible(true);
 
-      this.input.keyboard.once("keydown", () => {
-        this.scene.stop("GameOverScene");
-        this.scene.start("GameScene", { reload: true });
-      });
-
-      this.input.once("pointerdown", () => {
-        this.scene.stop("GameOverScene");
-        this.scene.start("GameScene", { reload: true });
-      });
+      this.input.keyboard.once("keydown", restartGame);
+      this.input.once("pointerdown", restartGame);
     });
   }
 }
