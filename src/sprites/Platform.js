@@ -110,6 +110,19 @@ export default class Platform extends Phaser.Physics.Arcade.Sprite {
         this._oscDir = 1;
       }
 
+  // Configure body collision: only on top
+  if (this.body && this.body.checkCollision) {
+  this.body.checkCollision.up = true;    // collide on top
+  this.body.checkCollision.down = false; // ignore from below
+  this.body.checkCollision.left = false; // ignore side-snag
+  this.body.checkCollision.right = false;
+
+  // Safety if any platforms use dynamic bodies:
+  this.body.immovable = true;
+  this.body.allowGravity = false;
+  }
+
+
       // 1) Move the visual first
       const oldCenter = this.x;
       this.x = nextCenter;
