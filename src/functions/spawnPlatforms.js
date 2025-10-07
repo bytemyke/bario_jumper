@@ -143,6 +143,7 @@ export function initializePlatforms(scene, player) {
     scene.platforms,
     (plr, plat) => {
       scene._pendingLandedPlatform = plat || null;
+      scene._groundedPlatform = plat || null; // player can ride moving platforms
     }, // collide callback
     (plr, plat) => {
       return !player._springActive;
@@ -155,6 +156,20 @@ export function initializePlatforms(scene, player) {
     if (!b) return;
 
     const grounded = b.blocked.down || b.touching.down;
+    // after: const grounded = b.blocked.down || b.touching.down;
+const gp = scene._groundedPlatform;
+if (grounded && gp && gp.isMoving && !player._springActive && !player.isTransforming) {
+  // Move the player by the platform’s horizontal delta
+  player.x += gp.dx || 0;
+
+  // Optional: keep feet glued if Arcade separation hasn’t already done it
+  if (player.body && typeof gp.body?.top === 'number') {
+    player.body.y = gp.body.top - player.body.height; // feet sit on top
+  }
+}
+if (!grounded) {
+  scene._groundedPlatform = null; // clear when airborne
+}
     const fallingOrRest = b.velocity.y >= 0;
 
     if (!grounded) scene._hasLeftGround = true;

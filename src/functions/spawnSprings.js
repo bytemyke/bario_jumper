@@ -19,6 +19,7 @@ export function maybeAttachSpring(scene, player, platform, opts = {}) {
   const isThreeBlockBasic =
     (platform?.isBasic === true) && ((platform?.blocks ?? 1) === 3);
   if (!isThreeBlockBasic) return;
+  if (!platform || platform.isFallingType === true) return;
 
   // Avoid double-placing on the same platform.
   if (platform.spring) return;
