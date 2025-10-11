@@ -3,6 +3,7 @@ import Phaser from "phaser";
 import Platform from "../sprites/Platform";
 import { maybeAttachSpring } from "../functions/spawnSprings";
 import { maybeAttachEnemy } from "../functions/spawnEnemies";
+import PLATFORM_TYPES from "../data/PlatformTypes.json";
 
 /* ---------------- Tunables (density & difficulty) ---------------- */
 
@@ -27,6 +28,85 @@ const X_PADDING = 40;
 const MAX_TRIES = 40;
 
 /* ---------------- Spacing rules (no blocking / no pinches) ---------------- */
+
+// Difficulty curve (score -> weights)
+const STEP_SIZE = 200;   // points per step
+const STEP_GAIN = 0.15;  // 15% per step (0.15)
+const MAX_T     = 1.0;   // cap
+
+const clamp01 = (v) => Math.max(0, Math.min(1, v));
+function difficultyT(score) {
+  const steps = Math.floor(Math.max(0, score) / STEP_SIZE);
+  return Math.min(MAX_T, steps * STEP_GAIN);
+}
+function platformMixForScore(score) {
+  const t = difficultyT(score);
+  const wLarge  = clamp01(0.60 * (1 - t));
+  const wStatic = clamp01(0.35 * (1 - 0.6 * t));
+  const wMoving = clamp01(0.05 + 0.45 * t);
+  const wFalling= clamp01(0.00 + 0.25 * t);
+  const wSmall  = clamp01(0.00 + 0.11 * t);
+  const sum = wLarge + wStatic + wMoving + wFalling + wSmall || 1;
+  return {
+    large:   wLarge / sum,
+    static:  wStatic / sum,
+    moving:  wMoving / sum,
+    falling: wFalling / sum,
+    small:   wSmall / sum,
+  };
+}
+
+// Build category pools from PlatformTypes.json (and only include loaded textures)
+function buildPlatformPools(scene) {
+  const pools = { large: [], static: [], moving: [], falling: [], small: [] };
+  for (const r of (PLATFORM_TYPES || [])) {
+    const blocks = (r.blocks ?? r.basic ?? 1);
+    const key = `${r.type}_${blocks}`;
+    if (!scene.textures.exists(key)) continue;
+    if (r.type === "moving") { pools.moving.push(key); continue; }
+    if (r.type === "falling") { pools.falling.push(key); continue; }
+    if (blocks >= 4) { pools.large.push(key); continue; }
+    if (blocks === 1) { pools.small.push(key); continue; }
+    pools.static.push(key);
+  }
+  // Fallback safety
+  if (pools.static.length === 0 && scene.textures.exists("basic_3")) {
+    pools.static.push("basic_3");
+  }
+  return pools;
+}
+
+// Weighted category pick that respects availability
+function pickCategoryByMix(mix, pools) {
+  const entries = Object.entries(mix)
+    .map(([cat, w]) => ({ cat, w: w * (pools[cat]?.length ? 1 : 0) }))
+    .filter(e => e.w > 0);
+  if (!entries.length) {
+    // if nothing is available per mix, fall back to any non-empty pool
+    const any = Object.keys(pools).find(cat => pools[cat]?.length);
+    return any || "static";
+  }
+  const total = entries.reduce((s, e) => s + e.w, 0);
+  let r = Math.random() * total;
+  for (const e of entries) { r -= e.w; if (r <= 0) return e.cat; }
+  return entries[entries.length - 1].cat;
+}
+
+// Final score-aware picker
+function pickPlatformKeyForScore(scene) {
+  const score = scene?.score ?? scene?.state?.score ?? 0;
+  const mix = platformMixForScore(score);
+  const pools = buildPlatformPools(scene);
+  const cat = pickCategoryByMix(mix, pools);
+  const list = pools[cat] ?? pools.static ?? [];
+  if (!list.length) {
+    const anyCat = Object.keys(pools).find(c => pools[c]?.length);
+    const any = anyCat ? pools[anyCat] : [];
+    return any.length ? any[(Math.random() * any.length) | 0] : "basic_3";
+  }
+  return list[(Math.random() * list.length) | 0];
+}
+
 
 const H_SPACING_MULT = 1.2;
 
@@ -364,7 +444,9 @@ function seedFullScreen(
     player.x + reach * 0.6
   );
 
-  const p1 = new Platform(scene, 0, 0);
+  const p1 = new Platform(scene, 0, 0, pickPlatformKeyForScore(scene));
+  p1.typeKey = p1.texture?.key;
+  p1.blocks = parseInt((p1.typeKey?.split("_")[1] ?? "3"), 10);
   let placedFirst = false;
   for (let i = 0; i < MAX_TRIES; i++) {
     const x = Phaser.Math.FloatBetween(firstXMin, firstXMax);
@@ -410,7 +492,10 @@ function seedFullScreen(
     countPlatforms(scene) < PLATFORM_POOL_CAP &&
     safetyCounter++ < 100
   ) {
-    const next = new Platform(scene, 0, 0);
+   const next = new Platform(scene, 0, 0, pickPlatformKeyForScore(scene));
+   next.typeKey = next.texture?.key;
+   next.blocks = parseInt((next.typeKey?.split("_")[1] ?? "3"), 10);
+
     const gap = Phaser.Math.FloatBetween(minGap, maxGap);
     let y = Math.max(topLimit, prev.y - gap);
 
@@ -472,7 +557,9 @@ function seedFullScreen(
     currentInView(scene, camTop, camBot) < MAX_IN_VIEW &&
     countPlatforms(scene) < PLATFORM_POOL_CAP
   ) {
-    const last = new Platform(scene, 0, 0);
+    const last = new Platform(scene, 0, 0, pickPlatformKeyForScore(scene));
+    last.typeKey = last.texture?.key;
+    last.blocks = parseInt((last.typeKey?.split("_")[1] ?? "3"), 10);
     const y = topLimit;
     const minX = Math.max(X_PADDING, prev.x - reach);
     const maxX = Math.min(scene.scale.width - X_PADDING, prev.x + reach);
@@ -523,7 +610,9 @@ function seedFullScreen(
   for (let i = 0; i < SEED_HEADROOM_JUMPS; i++) {
     if (countPlatforms(scene) >= PLATFORM_POOL_CAP) break;
 
-    const next = new Platform(scene, 0, 0);
+    const next = new Platform(scene, 0, 0, pickPlatformKeyForScore(scene));
+    next.typeKey = next.texture?.key;
+    next.blocks = parseInt((next.typeKey?.split("_")[1] ?? "3"), 10);
     const gap = Phaser.Math.FloatBetween(minGap, maxGap);
     let y = prev.y - gap;
 
@@ -589,7 +678,9 @@ function spawnOneAtTopPreferOffscreen(scene, player, h, reach, camTop) {
   const gap = Phaser.Math.Clamp(desiredGapToOffscreen, minGap, maxGap);
   const y = prevTop.y - gap;
 
-  const p = new Platform(scene, 0, 0);
+  const p = new Platform(scene, 0, 0, pickPlatformKeyForScore(scene));
+  p.typeKey = p.texture?.key;
+  p.blocks = parseInt((p.typeKey?.split("_")[1] ?? "3"), 10);
   const minX = Math.max(X_PADDING, prevTop.x - reach);
   const maxX = Math.min(scene.scale.width - X_PADDING, prevTop.x + reach);
 
@@ -749,7 +840,9 @@ function placeOptionalOnSide(
       if (upClearAny < minUpClearAny) continue;
     }
 
-    const p = new Platform(scene, 0, 0);
+    const p = new Platform(scene, 0, 0, pickPlatformKeyForScore(scene));
+    p.typeKey = p.texture?.key;
+    p.blocks = parseInt((p.typeKey?.split("_")[1] ?? "3"), 10);
     p.isOptional = true;
 
     if (!canPlaceWithSpacing(scene, x, proposedY, p, player, 1.0)) {

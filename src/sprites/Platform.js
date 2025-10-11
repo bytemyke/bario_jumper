@@ -148,7 +148,7 @@ if (wallLayers.length) {
   // Configure body collision: only on top
   if (this.body && this.body.checkCollision) {
   this.body.checkCollision.up = true;    // collide on top
-  this.body.checkCollision.down = false; // ignore from below
+  this.body.checkCollision.down = true; // ignore from below
   this.body.checkCollision.left = false; // ignore side-snag
   this.body.checkCollision.right = false;
 
