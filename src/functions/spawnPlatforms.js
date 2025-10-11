@@ -288,10 +288,10 @@ export function spawnPlatforms(scene, player, landedPlatform = null) {
 
   if (landedPlatform && keep.length > 0) {
     const lowest = keep.slice().sort((a, b) => b.y - a.y)[0];
-    if (landedPlatform === lowest) {
-      placeReachableInBand(scene, landedPlatform, player, h, reach, "balanced");
-      landedPlatform.refreshBody?.();
-    }
+   if (landedPlatform === lowest && !lowest._noRecycle) {
+  placeReachableInBand(scene, landedPlatform, player, h, reach, "balanced");
+  landedPlatform.refreshBody?.();
+}
   }
 }
 
@@ -385,6 +385,8 @@ function seedFullScreen(
     return;
   }
   p1.isEssential = true;
+  p1.isMoving = false;     // even if its texture is moving_*, anchor it
+  p1._noRecycle = true;    // skip the “small recycle” step later
   p1.refreshBody?.();
   // Track in *core* history buffer
   coreHistory.push(p1);

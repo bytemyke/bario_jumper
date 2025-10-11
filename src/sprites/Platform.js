@@ -109,6 +109,41 @@ export default class Platform extends Phaser.Physics.Arcade.Sprite {
         nextCenter = minCenter + (minCenter - nextCenter); // reflect
         this._oscDir = 1;
       }
+      // --- Collide with map wall tiles (flip-and-escape; no clamping) ---
+const mapData = this.scene.mapData;
+const wallLayers = mapData ? [mapData.wall, mapData.wall2].filter(Boolean) : [];
+
+if (wallLayers.length) {
+  // simple debounce so we don't flip every frame while touching the wall
+  if (!this._wallFlipUntil || time >= this._wallFlipUntil) {
+    const halfW = (this.displayWidth ?? this.width ?? 0) * 0.5;
+    const halfH = (this.displayHeight ?? this.height ?? 0) * 0.5;
+
+    // probe 1px ahead in the direction we're moving
+    const probeX = this._oscDir > 0 ? (nextCenter + halfW + 1) : (nextCenter - halfW - 1);
+    const probeY = this.y - halfH + 4;
+
+    let hitWall = false;
+    for (const layer of wallLayers) {
+      if (layer?.hasTileAtWorldXY?.(probeX, probeY)) { hitWall = true; break; }
+    }
+
+    if (hitWall) {
+      // flip direction and take one step AWAY from the wall so we're no longer touching
+      this._oscDir *= -1;
+
+      const dt = (typeof delta === "number" ? delta : 16.7) / 1000;
+      const stepAway = this._oscSpeed ? this._oscSpeed * dt : 40 * dt;
+
+      nextCenter = this.x + (this._oscDir * Math.max(1, stepAway));
+
+      // cooldown: ignore wall probe for ~120ms to prevent flicker
+      this._wallFlipUntil = time + 120;
+    }
+  }
+}
+// --- end wall-collision block ---
+
 
   // Configure body collision: only on top
   if (this.body && this.body.checkCollision) {
