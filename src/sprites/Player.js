@@ -45,7 +45,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
     // animations
     this.createAnimations(scene);
-    this.play("idle_mini");
+    //this.play("idle_mini");
 
     // listen for anim completion
     this.on("animationcomplete", this.onAnimComplete, this);

@@ -11,6 +11,11 @@ export function createMap(scene, player, { debug = false } = {}) {
 
   // height in pixels for one wall layer
   const wallHeight = wall.layer.height * wall.layer.baseTileHeight;
+  if (!wall) {
+  console.warn('Tilemap layer "wall" missing; skipping wall parallax.');
+  return 0; // or whatever your caller expects
+}
+
   //old background method
   // const background = map.createLayer("background", tileset, 0, originY);
   // background.setScrollFactor(1);
