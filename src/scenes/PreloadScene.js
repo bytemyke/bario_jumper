@@ -34,7 +34,7 @@ export default class PreloadScene extends Phaser.Scene {
     this.loadEnemies();
     // Dynamically load any additional platform images declared in JSON
     this.loadPlatforms();
-
+    this.load.image("bgCastle", "cartoon/bg_t_1.png");
     this.load.spritesheet("coin", "coin.png", {
       frameWidth: 331,
       frameHeight: 331,

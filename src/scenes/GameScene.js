@@ -7,7 +7,7 @@ import {
   initializePlatforms,
   resetPlatformState,
 } from "../functions/spawnPlatforms";
-import { createMap, updateMap } from "../functions/createMap";
+import { createMap, updateMap, updateBackground } from "../functions/createMap";
 import UpgradeManager from "../classes/UpgradeManager";
 import MuteButton from "../sprites/MuteButton";
 
@@ -112,6 +112,7 @@ export default class GameScene extends Phaser.Scene {
     this.scoreText.setText(`Score: ${this.score}`);
     // this.mapData.background.tilePositionY = this.cameras.main.scrollY;
     updateMap(this.mapData, this.cameras.main);
+    updateBackground(this.bgData, this.cameras.main);
     this.player.update();
     // Compute where we'd like the camera if it were allowed to move both ways
     const target = this.player.y - this.followOffsetY;

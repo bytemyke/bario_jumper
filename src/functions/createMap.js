@@ -8,13 +8,46 @@ export function createMap(scene, player, { debug = false } = {}) {
 
   const ground = map.createLayer("ground", tileset, 0, originY);
   const wall = map.createLayer("wall", tileset, 0, originY);
+  //create background
+  // Create 2 stacked background images
+const bgTexture = scene.textures.get("bgCastle").getSourceImage();
+const bgHeight = bgTexture.height;
+const bgWidth = bgTexture.width;
+//Test against this
+
+// Create 3 backgrounds stacked vertically
+const bgAlpha = 0.5; // 0 = fully transparent, 1 = fully opaque
+
+const bg1 = scene.add.image(0, 0, "bgCastle")
+  .setOrigin(0, 0)
+  .setScrollFactor(1)
+  .setDepth(-10)
+  .setAlpha(bgAlpha);
+
+const bg2 = scene.add.image(0, -bgHeight, "bgCastle")
+  .setOrigin(0, 0)
+  .setScrollFactor(1)
+  .setDepth(-10)
+  .setAlpha(bgAlpha);
+
+const bg3 = scene.add.image(0, -bgHeight * 2, "bgCastle")
+  .setOrigin(0, 0)
+  .setScrollFactor(1)
+  .setDepth(-10)
+  .setAlpha(bgAlpha);
+
+
+// Store data for updates
+scene.bgData = { backgrounds: [bg1, bg2, bg3], bgHeight };
+
+
 
   // height in pixels for one wall layer
   const wallHeight = wall.layer.height * wall.layer.baseTileHeight;
   if (!wall) {
-  console.warn('Tilemap layer "wall" missing; skipping wall parallax.');
-  return 0; // or whatever your caller expects
-}
+    console.warn('Tilemap layer "wall" missing; skipping wall parallax.');
+    return 0; // or whatever your caller expects
+  }
 
   //old background method
   // const background = map.createLayer("background", tileset, 0, originY);
@@ -70,7 +103,7 @@ export function updateMap(mapData, camera) {
   const camBottom = camTop + camera.height;
 
   // adjust this if seam is bigger
-  const GAP_FIX = 1; 
+  const GAP_FIX = 1;
 
   const topLayer = wall.y < wall2.y ? wall : wall2;
   const bottomLayer = topLayer === wall ? wall2 : wall;
@@ -84,4 +117,31 @@ export function updateMap(mapData, camera) {
   if (topLayer.y + wallHeight < camTop) {
     topLayer.y = bottomLayer.y + wallHeight - GAP_FIX;
   }
+  
 }
+
+export function updateBackground(bgData, camera) {
+  const { backgrounds, bgHeight } = bgData;
+  const camTop = camera.scrollY;
+  const camBottom = camTop + camera.height;
+  const GAP_FIX = 1;
+
+  // Sort by y position (top to bottom)
+  backgrounds.sort((a, b) => a.y - b.y);
+
+  const topBg = backgrounds[0];
+  const midBg = backgrounds[1];
+  const bottomBg = backgrounds[2];
+
+  // Moving UP — bottom goes above top
+  if (bottomBg.y > camBottom) {
+    bottomBg.y = topBg.y - bgHeight + GAP_FIX;
+  }
+
+  // Moving DOWN — top goes below bottom
+  if (topBg.y + bgHeight < camTop) {
+    topBg.y = bottomBg.y + bgHeight - GAP_FIX;
+  }
+}
+
+
