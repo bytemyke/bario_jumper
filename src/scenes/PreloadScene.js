@@ -131,7 +131,7 @@ export default class PreloadScene extends Phaser.Scene {
     this.load.audio("jump_sfx", "cco/audio/sfx/jump.wav");
     this.load.audio("spring_sfx", "cco/audio/sfx/spring1.wav");
     this.load.audio("touch_sfx", "cco/audio/sfx/touch01.wav");
-    this.load.audio("coin_sfx", "cco/audio/sfx/coin.flac");
+    this.load.audio("coin_sfx", "cco/audio/sfx/coin.wav");
     // this.load.audio("game_over_sfx", "assets/audio/sfx/lose.wav");
   }
   loadPlatforms() {

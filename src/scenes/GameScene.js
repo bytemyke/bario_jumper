@@ -10,6 +10,7 @@ import {
 import { createMap, updateMap, updateBackground } from "../functions/createMap";
 import UpgradeManager from "../classes/UpgradeManager";
 import MuteButton from "../sprites/MuteButton";
+import { setupCoins, updateCoins } from "../functions/coins";
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
@@ -43,13 +44,6 @@ export default class GameScene extends Phaser.Scene {
     if (isMobile) {
       this.createMobileControls();
     }
-
-    this.anims.create({
-      key: "coinSpin",
-      frames: this.anims.generateFrameNumbers("coin", { start: 0, end: 19 }),
-      frameRate: 10,
-      repeat: -1,
-    });
     this.score = 0;
 
     this.scoreText = this.add
@@ -62,18 +56,8 @@ export default class GameScene extends Phaser.Scene {
     this.player = new Player(this, gameWidth / 2, gameHeight * 0.75);
 
     this.cursors = this.input.keyboard.addKeys("W,A,S,D");
-
-    this.coins = this.physics.add.group();
     this.enemies = this.physics.add.group();
 
-    //coin overlap (no separation is fine for collectibles)
-    this.physics.add.overlap(
-      this.player,
-      this.coins,
-      this.collectCoin,
-      null,
-      this
-    );
     // REPLACE the enemy collider so there is only ONE binding and ONE handler
     if (this.playerEnemyCollider) this.playerEnemyCollider.destroy();
     this.playerEnemyCollider = this.physics.add.collider(
@@ -107,6 +91,7 @@ export default class GameScene extends Phaser.Scene {
     initializePlatforms(this, this.player);
     this.physics.add.collider(this.enemies, this.platforms);
     this.upgrades = new UpgradeManager(this, this.player, this.platforms);
+    setupCoins(this);
   }
   update() {
     this.scoreText.setText(`Score: ${this.score}`);
@@ -122,29 +107,17 @@ export default class GameScene extends Phaser.Scene {
       this.minScrollY = target;
     }
     this.cameras.main.scrollY = this.minScrollY; // never increases
+    updateCoins(this, this.time.now);
+
+
+    
   }
 
-  collectCoin(player, coin) {
-    coin.destroy();
-    this.score += 10;
-    this.scoreText.setText("Score: " + this.score);
-  }
+
 
   gameOver() {
     this.scene.stop("GameScene");
     this.scene.start("GameOverScene", { score: this.score });
-  }
-
-  spawnCoin() {
-    const gameWidth = this.sys.game.config.width;
-    const x = Phaser.Math.Between(50, gameWidth - 50);
-
-    // Spawn just above the player
-    const y = this.player.y - 100;
-
-    const coin = this.coins.create(x, y, "coin", 0).setDepth(10).setScale(0.1);
-    coin.play("coinSpin");
-    coin.body.setAllowGravity(false);
   }
 
   spawnEnemy() {
@@ -203,7 +176,7 @@ export default class GameScene extends Phaser.Scene {
       .on("pointerout", () => (this.controls.up = false))
       .setScale(1.5)
       .setPipeline("TextureTintPipeline");
-  }
+  } 
   resetGame() {
     // Defensive destroy: no `.clear()` because physics may be gone
     if (this.platforms) {
