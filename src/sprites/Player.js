@@ -367,8 +367,13 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   die() {
     // attempting to make sure the player doesn't die in spring mode
     if (this._springActive) return;
+    this.scene.sound.stopAll();
+    const deathSound = this.scene.sound.add("death_sfx");
     this.setTint(0xff0000).play("die");
-    this.scene.gameOver();
+    deathSound.play();
+    deathSound.once("complete", () => {
+      this.scene.gameOver();
+    });
   }
 }
 

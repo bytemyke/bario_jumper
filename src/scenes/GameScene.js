@@ -11,6 +11,7 @@ import { createMap, updateMap, updateBackground } from "../functions/createMap";
 import UpgradeManager from "../classes/UpgradeManager";
 import MuteButton from "../sprites/MuteButton";
 import { setupCoins, updateCoins } from "../functions/coins";
+import { setupDeathBar, updateDeathBar } from "../functions/deathBar";
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
@@ -92,6 +93,7 @@ export default class GameScene extends Phaser.Scene {
     this.physics.add.collider(this.enemies, this.platforms);
     this.upgrades = new UpgradeManager(this, this.player, this.platforms);
     setupCoins(this);
+    setupDeathBar(this);
   }
   update() {
     this.scoreText.setText(`Score: ${this.score}`);
@@ -108,9 +110,7 @@ export default class GameScene extends Phaser.Scene {
     }
     this.cameras.main.scrollY = this.minScrollY; // never increases
     updateCoins(this, this.time.now);
-
-
-    
+    updateDeathBar(this);
   }
 
 
