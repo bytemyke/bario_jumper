@@ -124,7 +124,13 @@ export default class PreloadScene extends Phaser.Scene {
         frameHeight: 24,
       }
     );
-      }
+    this.load.spritesheet(
+  "ghost",
+  "cartoon/sprites/enemies/ghost.png",   // put your Ghost-Spritesheet.png here
+  { frameWidth: 16, frameHeight: 16 }
+);
+  }
+
 
   loadAudio() {
     this.load.audio("bgm", "cco/audio/music/8-bit_mechanical_complex.mp3");
