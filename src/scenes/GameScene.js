@@ -1,17 +1,16 @@
 import Phaser from "phaser";
 import Platform from "../sprites/Platform";
 import Enemy from "../sprites/Enemy";
+import Ghost from "../sprites/enemies/Ghost"
 import Player from "../sprites/Player";
 import {
   spawnPlatforms,
   initializePlatforms,
   resetPlatformState,
 } from "../functions/spawnPlatforms";
-import { createMap, updateMap, updateBackground } from "../functions/createMap";
+import { createMap, updateMap } from "../functions/createMap";
 import UpgradeManager from "../classes/UpgradeManager";
 import MuteButton from "../sprites/MuteButton";
-import { setupCoins, updateCoins } from "../functions/coins";
-import { setupDeathBar, updateDeathBar } from "../functions/deathBar";
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
@@ -45,6 +44,13 @@ export default class GameScene extends Phaser.Scene {
     if (isMobile) {
       this.createMobileControls();
     }
+
+    this.anims.create({
+      key: "coinSpin",
+      frames: this.anims.generateFrameNumbers("coin", { start: 0, end: 19 }),
+      frameRate: 10,
+      repeat: -1,
+    });
     this.score = 0;
 
     this.scoreText = this.add
@@ -57,17 +63,27 @@ export default class GameScene extends Phaser.Scene {
     this.player = new Player(this, gameWidth / 2, gameHeight * 0.75);
 
     this.cursors = this.input.keyboard.addKeys("W,A,S,D");
-    this.enemies = this.physics.add.group();
 
-    // REPLACE the enemy collider so there is only ONE binding and ONE handler
-    if (this.playerEnemyCollider) this.playerEnemyCollider.destroy();
-    this.playerEnemyCollider = this.physics.add.collider(
+    this.coins = this.physics.add.group();
+    this.enemies = this.physics.add.group({ runChildUpdate: true });
+
+if (this.playerEnemyCollider) this.playerEnemyCollider.destroy();
+this.playerEnemyCollider = this.physics.add.collider(
+  this.player,
+  this.enemies,
+  (player, enemy) => enemy?.onPlayerCollide?.(player),
+  null,
+  this
+);
+
+
+    //coin overlap (no separation is fine for collectibles)
+    this.physics.add.overlap(
       this.player,
-      this.enemies,
-      (player, enemy) => {
-        // Null-safe: let each enemy decide stomp/damage/etc.
-        enemy?.onPlayerCollide?.(player);
-      }
+      this.coins,
+      this.collectCoin,
+      null,
+      this
     );
 
     // Let the world extend far ABOVE 0 so the camera can go up
@@ -90,16 +106,54 @@ export default class GameScene extends Phaser.Scene {
     //map creation
     this.mapData = createMap(this, this.player);
     initializePlatforms(this, this.player);
-    this.physics.add.collider(this.enemies, this.platforms);
+    this.enemiesPlatformsCollider = this.physics.add.collider(
+  this.enemies,
+  this.platforms,
+  null,
+  (enemy /*, platform */) => {
+    return enemy?.constructor?.TYPE !== "ghost"; // block everyone except ghosts
+  },
+  this
+);
+
+// Create enemies group if you don't already:
+this.enemies = this.enemies || this.physics.add.group({ runChildUpdate: true });
+
+// Simple free-roaming ghost spawner
+this.time.addEvent({
+  delay: 1200,
+  loop: true,
+  callback: () => {
+    // Cap visible ghosts
+    const visibleGhosts = this.enemies.getChildren().filter(
+      e => e?.constructor?.TYPE === "ghost" && e.active
+    );
+    if (visibleGhosts.length >= 1) return;
+
+    // Spawn just above the camera, somewhat random X
+    const cam = this.cameras.main;
+    const w = this.scale.width;
+    const x = Phaser.Math.Between(24, w - 24);
+    const y = cam.worldView.y - Phaser.Math.Between(80, 160);
+
+    // Avoid spawning inside a platform
+    if (this._positionIsInsidePlatform(x, y)) return;
+
+    // Don’t pop directly on top of player
+    if (Math.abs(this.player.x - x) < 16 && Math.abs(this.player.y - y) < 16) return;
+
+    // Create and add to the enemies group
+    const g = new Ghost(this, x, y);
+    this.enemies.add(g);
+  },
+});
+
     this.upgrades = new UpgradeManager(this, this.player, this.platforms);
-    setupCoins(this);
-    setupDeathBar(this);
   }
   update() {
     this.scoreText.setText(`Score: ${this.score}`);
     // this.mapData.background.tilePositionY = this.cameras.main.scrollY;
     updateMap(this.mapData, this.cameras.main);
-    updateBackground(this.bgData, this.cameras.main);
     this.player.update();
     // Compute where we'd like the camera if it were allowed to move both ways
     const target = this.player.y - this.followOffsetY;
@@ -109,15 +163,44 @@ export default class GameScene extends Phaser.Scene {
       this.minScrollY = target;
     }
     this.cameras.main.scrollY = this.minScrollY; // never increases
-    updateCoins(this, this.time.now);
-    updateDeathBar(this);
   }
 
+  _positionIsInsidePlatform(x, y) {
+  let inside = false;
+  this.platforms.getChildren().forEach(p => {
+    if (!p?.active) return;
+    const halfW = (p.displayWidth ?? p.body?.width ?? 0) / 2;
+    const halfH = (p.displayHeight ?? p.body?.height ?? 0) / 2;
+    if (x >= p.x - halfW - 2 && x <= p.x + halfW + 2 &&
+        y >= p.y - halfH - 2 && y <= p.y + halfH + 2) {
+      inside = true;
+    }
+  });
+  return inside;
+}
 
+
+  collectCoin(player, coin) {
+    coin.destroy();
+    this.score += 10;
+    this.scoreText.setText("Score: " + this.score);
+  }
 
   gameOver() {
     this.scene.stop("GameScene");
     this.scene.start("GameOverScene", { score: this.score });
+  }
+
+  spawnCoin() {
+    const gameWidth = this.sys.game.config.width;
+    const x = Phaser.Math.Between(50, gameWidth - 50);
+
+    // Spawn just above the player
+    const y = this.player.y - 100;
+
+    const coin = this.coins.create(x, y, "coin", 0).setDepth(10).setScale(0.1);
+    coin.play("coinSpin");
+    coin.body.setAllowGravity(false);
   }
 
   spawnEnemy() {
@@ -176,7 +259,7 @@ export default class GameScene extends Phaser.Scene {
       .on("pointerout", () => (this.controls.up = false))
       .setScale(1.5)
       .setPipeline("TextureTintPipeline");
-  } 
+  }
   resetGame() {
     // Defensive destroy: no `.clear()` because physics may be gone
     if (this.platforms) {

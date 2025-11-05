@@ -34,7 +34,7 @@ export default class PreloadScene extends Phaser.Scene {
     this.loadEnemies();
     // Dynamically load any additional platform images declared in JSON
     this.loadPlatforms();
-    this.load.image("bgCastle", "cartoon/bg_t_1.png");
+
     this.load.spritesheet("coin", "coin.png", {
       frameWidth: 331,
       frameHeight: 331,
@@ -124,19 +124,20 @@ export default class PreloadScene extends Phaser.Scene {
         frameHeight: 24,
       }
     );
-      }
+    this.load.spritesheet(
+  "ghost",
+  "cartoon/sprites/enemies/ghost.png",   // put your Ghost-Spritesheet.png here
+  { frameWidth: 16, frameHeight: 16 }
+);
+  }
+
 
   loadAudio() {
     this.load.audio("bgm", "cco/audio/music/8-bit_mechanical_complex.mp3");
     this.load.audio("jump_sfx", "cco/audio/sfx/jump.wav");
     this.load.audio("spring_sfx", "cco/audio/sfx/spring1.wav");
     this.load.audio("touch_sfx", "cco/audio/sfx/touch01.wav");
-    this.load.audio("coin_sfx", "cco/audio/sfx/coin.wav");
-    this.load.audio("death_sfx", "cco/audio/sfx/Player_Died.wav");
-      this.load.audio("Life_Gain_sfx", "cco/audio/sfx/Life_Gain.wav");
-    this.load.audio("Life_Lose_sfx", "cco/audio/sfx/Life_Lose.wav");
-
-
+    this.load.audio("coin_sfx", "cco/audio/sfx/coin.flac");
     // this.load.audio("game_over_sfx", "assets/audio/sfx/lose.wav");
   }
   loadPlatforms() {
