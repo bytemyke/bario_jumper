@@ -74,14 +74,14 @@ export default class PreloadScene extends Phaser.Scene {
     // TODO: put YOUR real frame sizes below for each sheet
     // =Enemy sprites= (3x1 sheets; per-frame is 16x16)
     this.load.spritesheet(
-      "stump_brown",
-      "cartoon/sprites/enemies/stump_brown.png",
-      {
-        frameWidth: 17,
-        frameHeight: 16,
-        spacing: 2,
-      }
-    );
+  "stump_brown",
+  "cartoon/sprites/enemies/stump_brown.png",
+  {
+    frameWidth: 18,
+    frameHeight: 16,
+    spacing: 0,
+  }
+  );
     this.load.spritesheet(
       "stump_red",
       "cartoon/sprites/enemies/stump_red.png",

@@ -161,25 +161,14 @@ this.y = Math.round(platTop);
    * True if the player is falling and above our top quarter (counts as a stomp).
    */
   _isStomp(player) {
-   if (!player?.body || !this?.body) return false;
-   // Use physics edges, not sprite origins
-   const vy = player.body.velocity.y;
-  const tol = 6; // px tolerance for rounding / moving platforms
-
-   // Current & previous bottoms for a “crossing the top” test
-   const currBottom = player.body.bottom;
-   const prevBottom =
-     (player.body.prev?.y ?? (player.body.y - vy * (1 / 60))) + player.body.height;
-   const stumpTop = this.body.top;
-
-   // Descending AND the player’s feet are at/above our top (with tolerance),
-   // and preferably crossed the top this frame (reduces side-hit false positives).
-   const descending = vy > 0;
-   const aboveNow = currBottom <= stumpTop + tol;
-   const crossedThisFrame = prevBottom <= stumpTop + tol && currBottom >= stumpTop - tol;
-
-   return descending && (aboveNow || crossedThisFrame);dw
+    if (!player?.body || !this?.body) return false;
+    const vy = player.body.velocity.y;      // +Y is downward in Arcade
+    const tol = 6;                          // small tolerance
+    const playerBottom = player.body.bottom;
+    const stumpTop = this.body.top;
+    return vy > 0 && playerBottom <= stumpTop + tol;
   }
+
   _updateFacing() {
   const vx = this.body?.velocity?.x ?? 0;
   if (vx > 0) this.setFlipX(false);
