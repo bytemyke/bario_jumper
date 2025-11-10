@@ -18,6 +18,7 @@ export default class GameOverScene extends Phaser.Scene {
         fontSize: "48px",
         color: "#ff0000",
         fontStyle: "bold",
+        fontFamily: "NormalSans",
       })
       .setOrigin(0.5);
 
@@ -27,6 +28,7 @@ export default class GameOverScene extends Phaser.Scene {
         fontSize: "36px",
         color: "#87CEFA",
         fontStyle: "bold",
+        fontFamily: "NormalSans",
       })
       .setOrigin(0.5);
 
@@ -49,6 +51,7 @@ export default class GameOverScene extends Phaser.Scene {
           fontSize: "20px",
           color: "#ffffff",
           wordWrap: { width: width - 40 },
+          fontFamily: "NormalSans",
         }
       )
       .setOrigin(0.5);

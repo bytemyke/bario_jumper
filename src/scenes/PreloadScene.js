@@ -8,6 +8,7 @@ export default class PreloadScene extends Phaser.Scene {
 
   preload() {
     this.load.setPath("assets");
+    this.loadFonts();
     this.loadAudio();
     this.loadPlatforms();
     this.loadParticles();
@@ -34,6 +35,10 @@ export default class PreloadScene extends Phaser.Scene {
     this.loadEnemies();
     // Dynamically load any additional platform images declared in JSON
     this.loadPlatforms();
+    this.load.spritesheet("barioCartridge", "cco/bario_cartridge_spritesheet.png", {
+      frameWidth: 122,
+      frameHeight: 78,
+    });
     this.load.image("bgCastle", "cartoon/bg_t_1.png");
     this.load.spritesheet("coin", "coin.png", {
       frameWidth: 331,
@@ -53,6 +58,9 @@ export default class PreloadScene extends Phaser.Scene {
     this.load.image("gandcTiles", "cartoon/Ground-and-Ceiling.png");
     // this.load.image("backgroundTexture", "cartoon/background_middle.png");
     this.load.tilemapTiledJSON("tilemap", "map.json");
+  }
+  loadFonts() {
+    this.load.font("NormalSans", "cco/fonts/NormalSans--Timconceivable.ttf", 'truetype');
   }
   loadPlatforms() {
     const seen = new Set();
@@ -161,5 +169,6 @@ export default class PreloadScene extends Phaser.Scene {
   }
   create() {
     this.scene.start("GameScene");
+    // this.scene.start("MenuScene")
   }
 }

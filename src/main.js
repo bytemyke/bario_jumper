@@ -1,6 +1,7 @@
 import Phaser from "phaser";
-import GameScene from "./scenes/GameScene";
 import MenuScene from "./scenes/MenuScene";
+import InstructionsScene from "./scenes/InstructionsScene";
+import GameScene from "./scenes/GameScene";
 import GameOverScene from "./scenes/GameOverScene";
 import PreloadScene from "./scenes/PreloadScene";
 
@@ -41,7 +42,7 @@ const config = {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_HORIZONTALLY,
   },
-  scene: [PreloadScene, MenuScene, GameScene, GameOverScene],
+  scene: [PreloadScene, MenuScene, InstructionsScene, GameScene, GameOverScene],
   physics: {
     default: "arcade",
     arcade: {
