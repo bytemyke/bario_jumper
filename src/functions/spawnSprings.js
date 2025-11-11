@@ -58,9 +58,13 @@ if (Math.random() > chance) return;
 
 
   // Create & store.
-  const spring = new Spring(scene, x, y);
-  platform.spring = spring;
-// Keep springs in a group so we can count what's on screen for the cap.
+ const useRed = Math.random() < (1 / 3);
+const spring = new Spring(scene, x, y, {
+  textureKey: useRed ? "red_spring" : "green_spring",
+  strength:   useRed ? 2 : 1, // red = double height
+});
+platform.spring = spring;
+
 if (!scene.springs) scene.springs = scene.physics.add.staticGroup();
 scene.springs.add(spring);
 
@@ -79,12 +83,13 @@ scene.springs.add(spring);
 
     // Play the visual bounce; when done, signal end hook.
     spr.playBounce(() => {
-        plr.setVelocityY(-950);         // (or scene-configured value)
+        plr.setVelocityY(spr.getPlayerBoostVy());
+        // (or scene-configured value)
   spr.setFrame(0);
       scene.events.emit("spring:end", { player: plr, spring: spr });
     });
 
     //  Apply a strong vertical launch — actual “ignore-platforms” logic should live in Player.
-    body.setVelocityY(-900);
+    body.setVelocityY(spr.getBodyBoostVy());;
   }, null, scene);
 }

@@ -161,10 +161,14 @@ this.y = Math.round(platTop);
    * True if the player is falling and above our top quarter (counts as a stomp).
    */
   _isStomp(player) {
-    if (!player || !player.body) return false;
-    const vy = player.body.velocity?.y ?? 0;
-    return vy > 0 && player.y < this.y - this.displayHeight * 0.25;
+    if (!player?.body || !this?.body) return false;
+    const vy = player.body.velocity.y;      // +Y is downward in Arcade
+    const tol = 6;                          // small tolerance
+    const playerBottom = player.body.bottom;
+    const stumpTop = this.body.top;
+    return vy > 0 && playerBottom <= stumpTop + tol;
   }
+
   _updateFacing() {
   const vx = this.body?.velocity?.x ?? 0;
   if (vx > 0) this.setFlipX(false);
