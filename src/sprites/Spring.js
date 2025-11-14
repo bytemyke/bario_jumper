@@ -1,78 +1,62 @@
-// A lightweight sprite class that knows how to play its own bounce animation.
+// A lightweight spring sprite that can be re-skinned and re-powered.
 import Phaser from "phaser";
 
 export default class Spring extends Phaser.Physics.Arcade.Sprite {
-  constructor(scene, x, y) {
-    // Use our new sheet; default to frame 0 (idle/compressed).
-    super(scene, x, y, "green_spring", 0);
+  /**
+   * @param {Phaser.Scene} scene
+   * @param {number} x
+   * @param {number} y
+   * @param {object} [opts]
+   * @param {string} [opts.textureKey="green_spring"]  // which sheet to use
+   * @param {number} [opts.strength=1]                 // 1 = normal, 2 = double
+   */
+  constructor(scene, x, y, opts = {}) {
+    const textureKey = opts.textureKey || "green_spring";
+    super(scene, x, y, textureKey, 0);
 
-    // Add to scene/physics and make it static-ish like platforms.
+    this.textureKey = textureKey;
+    this.strength = opts.strength == null ? 1 : Number(opts.strength);
+
+    // Add to scene/physics (static-ish like platforms)
     scene.add.existing(this);
-    scene.physics.add.existing(this, true); // immovable/static body
+    scene.physics.add.existing(this, true);
 
-    // Create the animation once, only if the sheet exists and has frames.
-    const SPRING_ANIM_KEY = "spring_bounce";
-    const tex = scene.textures.get("green_spring");
+    this.setOrigin(0.5, 1); // feet sit on platform top
+
+    // Build an animation key unique to the texture to avoid key collisions.
+    this.animKey = `${textureKey}_bounce`;
+
+    const tex = scene.textures.get(textureKey);
     if (!tex || tex.frameTotal < 3) {
       console.warn(
-        "[Spring] green_spring missing or mis-sized (need 3 frames at 16x24)."
+        `[Spring] "${textureKey}" missing or not 3 frames at 16x24.`
       );
-    } else if (!scene.anims.get(SPRING_ANIM_KEY)) {
+    } else if (!scene.anims.get(this.animKey)) {
       scene.anims.create({
-        key: SPRING_ANIM_KEY,
-        frames: scene.anims.generateFrameNumbers("green_spring", {
-          start: 0,
-          end: 2,
-        }),
-        frameRate: 18,
-        repeat: 0,
-      });
-    }
-
-    this.setOrigin(0.5, 1); // sit on the platform top
-
-    // Create the 3-frame animation once (idempotent).
-    if (!scene.anims.exists("spring_bounce")) {
-      scene.anims.create({
-        key: "spring_bounce",
-        frames: scene.anims.generateFrameNumbers("green_spring", {
-          start: 0,
-          end: 2,
-        }),
+        key: this.animKey,
+        frames: scene.anims.generateFrameNumbers(textureKey, { start: 0, end: 2 }),
         frameRate: 18,
         repeat: 0,
       });
     }
   }
 
-  // Public method to play bounce and signal hooks for Player’s spring-mode animation.
+  /** Stronger springs multiply these velocities. */
+  getBodyBoostVy()   { return -900 * this.strength; }   // immediate body push
+  getPlayerBoostVy() { return -950 * this.strength; }   // post-anim extra pop
+  getPlayerModeBoostVy() { return -1200 * this.strength; } // Player spring-mode
+
+  /** Play the bounce animation (if present) and call onComplete when done. */
   playBounce(onComplete) {
-    // Only play if the animation exists; avoid the Phaser "duration" crash.
-    // Only play if the animation exists and has frames; otherwise skip (no crash).
-    const k = "spring_bounce";
-    const a = this.scene.anims.get(k);
-    if (!a || !a.frames || a.frames.length === 0) {
-      console.warn(
-        "[Spring] Missing/empty animation:",
-        k,
-        "-- check PreloadScene path/sizes."
-      );
+    const a = this.scene.anims.get(this.animKey);
+    if (!a || !a.frames?.length) {
       if (onComplete) onComplete();
       return;
     }
-    //play audio once
     this.scene.sound.play("spring_sfx");
-    //play animation
-    this.anims.play(k);
-
-    // When the bounce animation finishes (player is already airborne), put the spring back to its upright (frame 0) state.
-    this.anims.play(k);
+    this.anims.play(this.animKey, true);
     this.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
-      this.setFrame(0); // <-- reset to upright so it looks unused if landed again
-      if (onComplete) onComplete(); // keep your existing callback behavior
-    });
-
-    this.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+      this.setFrame(0); // reset upright
       if (onComplete) onComplete();
     });
   }

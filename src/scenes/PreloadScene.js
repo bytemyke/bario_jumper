@@ -54,7 +54,10 @@ export default class PreloadScene extends Phaser.Scene {
       frameHeight: 24,
     });
     const t = this.textures.get("green_spring");
-
+    this.load.spritesheet("red_spring", "cartoon/sprites/red_spring.png", {
+      frameWidth: 16,
+      frameHeight: 24,
+    });
     this.load.image("gandcTiles", "cartoon/Ground-and-Ceiling.png");
     // this.load.image("backgroundTexture", "cartoon/background_middle.png");
     this.load.tilemapTiledJSON("tilemap", "map.json");
@@ -131,6 +134,11 @@ export default class PreloadScene extends Phaser.Scene {
         frameWidth: 18,
         frameHeight: 24,
       }
+    );
+    this.load.spritesheet(
+      "ghost",
+      "cartoon/sprites/enemies/ghost.png",
+      { frameWidth: 16, frameHeight: 16 }
     );
       }
 
