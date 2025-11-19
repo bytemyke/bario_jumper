@@ -61,7 +61,7 @@ if (Math.random() > chance) return;
  const useRed = Math.random() < (1 / 3);
 const spring = new Spring(scene, x, y, {
   textureKey: useRed ? "red_spring" : "green_spring",
-  strength:   useRed ? 2 : 1, // red = double height
+  strength:   useRed ? 1.4 : 1, // red = double height
 });
 platform.spring = spring;
 
