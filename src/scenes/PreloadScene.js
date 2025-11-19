@@ -35,9 +35,9 @@ export default class PreloadScene extends Phaser.Scene {
     this.loadEnemies();
     // Dynamically load any additional platform images declared in JSON
     this.loadPlatforms();
-    this.load.spritesheet("barioCartridge", "cco/bario_cartridge_spritesheet.png", {
-      frameWidth: 122,
-      frameHeight: 78,
+    this.load.spritesheet("barioCastleSheet", "cartoon/bario_castle_sheet.png", {
+      frameWidth: 184,
+      frameHeight: 336,
     });
     this.load.image("bgCastle", "cartoon/bg_t_1.png");
     this.load.spritesheet("coin", "coin.png", {
@@ -176,7 +176,7 @@ export default class PreloadScene extends Phaser.Scene {
     this.load.image("music_off", "cco/controls/music_off.png");
   }
   create() {
-    this.scene.start("GameScene");
-    // this.scene.start("MenuScene")
+    // this.scene.start("GameScene");
+    this.scene.start("MenuScene")
   }
 }

@@ -19,7 +19,7 @@ export default class InstructionsScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const instructionLines = [
-      "WASD (PC) BUTTONS (Mobile): \n Move left right and jump",
+      "WASD (PC) \n BUTTONS (Mobile):",
       "- Collect coins to increase your score",
       "- Avoid enemies and falling off platforms",
       "- Springs launch you higher",
@@ -28,7 +28,7 @@ export default class InstructionsScene extends Phaser.Scene {
 
     this.add
       .text(width / 2, height / 2, instructionLines.join("\n"), {
-        fontSize: "18px",
+        fontSize: "13px",
         color: "#ffffff",
         fontFamily: "NormalSans",
         align: "center",
@@ -37,8 +37,8 @@ export default class InstructionsScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(width / 2, height - 80, "Press ESC or M to return to the menu", {
-        fontSize: "16px",
+      .text(width / 2, height - 80, "ESC or click to return", {
+        fontSize: "18px",
         color: "#ffffff",
         fontFamily: "NormalSans",
       })

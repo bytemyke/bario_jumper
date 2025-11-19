@@ -8,40 +8,13 @@ export default class MenuScene extends Phaser.Scene {
   create() {
     const { width, height } = this.scale;
 
-    const castleTexture = this.textures.get("bgCastle");
-    const castleSource = castleTexture ? castleTexture.getSourceImage() : null;
-    const castleWidth = castleSource ? castleSource.width : width;
-    const castleHeight = castleSource ? castleSource.height : height;
-    const castleScale = Math.max(width / castleWidth, height / castleHeight);
-    this.add
-      .image(width / 2, height / 2, "bgCastle")
-      .setOrigin(0.5)
-      .setScale(castleScale)
-      .setTint(0xa8d8ff);
-
-    const gradient = this.add.graphics();
-    const palette = [0x3a2d6b, 0x54428e, 0x6b4ca5, 0x9068be];
-    const stripeHeight = Math.ceil(height / palette.length);
-    palette.forEach((color, index) => {
-      gradient.fillStyle(color, 0.25);
-      gradient.fillRect(0, index * stripeHeight, width, stripeHeight);
-    });
-
-    const scanlines = this.add.graphics();
-    scanlines.fillStyle(0x000000, 0.08);
-    for (let y = 0; y < height; y += 2) {
-      scanlines.fillRect(0, y, width, 1);
-    }
-
-    this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.4);
-
-    const cartridgeAnimKey = "barioCartridgeLoop";
-    if (!this.anims.exists(cartridgeAnimKey)) {
-      const texture = this.textures.get("barioCartridge");
+    const CastleSheetAnimKey = "barioCastleSheetLoop";
+    if (!this.anims.exists(CastleSheetAnimKey)) {
+      const texture = this.textures.get("barioCastleSheet");
       const frameTotal = texture.frameTotal;
       this.anims.create({
-        key: cartridgeAnimKey,
-        frames: this.anims.generateFrameNumbers("barioCartridge", {
+        key: CastleSheetAnimKey,
+        frames: this.anims.generateFrameNumbers("barioCastleSheet", {
           start: 0,
           end: frameTotal - 1,
         }),
@@ -50,25 +23,25 @@ export default class MenuScene extends Phaser.Scene {
       });
     }
 
-    const cartridgeFrame = this.textures.getFrame("barioCartridge", 0);
-    const frameWidth = cartridgeFrame ? cartridgeFrame.width : width;
-    const cartridgeScale = frameWidth ? width / frameWidth : 1;
-    const cartridge = this.add
-      .sprite(width / 2, 0, "barioCartridge")
+    const CastleSheetFrame = this.textures.getFrame("barioCastleSheet", 0);
+    const frameWidth = CastleSheetFrame ? CastleSheetFrame.width : width;
+    const CastleSheetScale = frameWidth ? width / frameWidth : 1;
+    const CastleSheet = this.add
+      .sprite(width / 2, 0, "barioCastleSheet")
       .setOrigin(0.5, 0)
-      .setScale(cartridgeScale)
-      .play(cartridgeAnimKey);
+      .setScale(CastleSheetScale)
+      .play(CastleSheetAnimKey);
 
-    const animationBottom = cartridge.getBounds().bottom;
+    const animationBottom = CastleSheet.getBounds().bottom;
     const sectionSpacing = 24;
 
     const title = this.add
-      .text(width / 2, animationBottom + sectionSpacing, "Bario Jumper", {
-        fontSize: "36px",
+      .text(width / 2,  sectionSpacing, "Bario Jumper", {
+        fontSize: "40px",
         color: "#ffffff",
         fontFamily: "NormalSans",
       })
-      .setOrigin(0.5, 0);
+      .setOrigin(0.5, 0).setDepth(1);
 
     const startGame = () => {
       this.scene.start("GameScene");
@@ -84,13 +57,13 @@ export default class MenuScene extends Phaser.Scene {
         title.getBounds().bottom + sectionSpacing,
         "Start",
         {
-          fontSize: "20px",
+          fontSize: "32px",
           color: "#ffffff",
           fontFamily: "NormalSans",
         }
       )
       .setOrigin(0.5, 0)
-      .setInteractive({ useHandCursor: true });
+      .setInteractive({ useHandCursor: true }).setDepth(1);
 
     const instructionsText = this.add
       .text(
@@ -98,7 +71,7 @@ export default class MenuScene extends Phaser.Scene {
         startText.getBounds().bottom + sectionSpacing,
         "Instructions",
         {
-          fontSize: "18px",
+          fontSize: "24px",
           color: "#ffffff",
           fontFamily: "NormalSans",
         }
