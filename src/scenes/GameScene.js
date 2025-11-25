@@ -47,7 +47,6 @@ export default class GameScene extends Phaser.Scene {
         fontSize: "24px",
         fill: "#FFFFFF",
         fontFamily: "NormalSans",
-
       })
       .setScrollFactor(0).setDepth(100);
 
