@@ -43,7 +43,7 @@ export default class InstructionsScene extends Phaser.Scene {
         fontFamily: "NormalSans",
       })
       .setOrigin(0.5);
-
+      
     const returnToMenu = () => {
       this.scene.start("MenuScene");
     };

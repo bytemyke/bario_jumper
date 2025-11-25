@@ -1,11 +1,12 @@
 import Phaser from "phaser";
-
+import MuteButton from "../sprites/MuteButton";
 export default class MenuScene extends Phaser.Scene {
   constructor() {
     super("MenuScene");
   }
 
   create() {
+    new MuteButton(this, 0, 0);
     const { width, height } = this.scale;
 
     const CastleSheetAnimKey = "barioCastleSheetLoop";
@@ -36,12 +37,13 @@ export default class MenuScene extends Phaser.Scene {
     const sectionSpacing = 24;
 
     const title = this.add
-      .text(width / 2,  sectionSpacing, "Bario Jumper", {
+      .text(width / 2, sectionSpacing, "Bario Jumper", {
         fontSize: "40px",
         color: "#ffffff",
         fontFamily: "NormalSans",
       })
-      .setOrigin(0.5, 0).setDepth(1);
+      .setOrigin(0.5, 0)
+      .setDepth(1);
 
     const startGame = () => {
       this.scene.start("GameScene");
@@ -52,18 +54,14 @@ export default class MenuScene extends Phaser.Scene {
     };
 
     const startText = this.add
-      .text(
-        width / 2,
-        title.getBounds().bottom + sectionSpacing,
-        "Start",
-        {
-          fontSize: "32px",
-          color: "#ffffff",
-          fontFamily: "NormalSans",
-        }
-      )
+      .text(width / 2, title.getBounds().bottom + sectionSpacing, "Start", {
+        fontSize: "32px",
+        color: "#ffffff",
+        fontFamily: "NormalSans",
+      })
       .setOrigin(0.5, 0)
-      .setInteractive({ useHandCursor: true }).setDepth(1);
+      .setInteractive({ useHandCursor: true })
+      .setDepth(1);
 
     const instructionsText = this.add
       .text(
@@ -78,7 +76,6 @@ export default class MenuScene extends Phaser.Scene {
       )
       .setOrigin(0.5, 0)
       .setInteractive({ useHandCursor: true });
-
 
     startText.on("pointerdown", startGame);
     startText.on("pointerover", () => startText.setStyle({ color: "#ffff88" }));

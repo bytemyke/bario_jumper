@@ -335,7 +335,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   takeDamage() {
     // already blinking? ignore hit
     if (this._invuln) return;
-
+    console.log("hit");
     // hit tint
     this.setTint(0xff6666);
     // brief invulnerability to avoid multi-hit in same frame
@@ -344,6 +344,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     if (this.body) this.setVelocityY(-180);
 
     if (this.current_mode !== "big") {
+      console.log('should die');
       return this.die();
     }
 

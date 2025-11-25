@@ -12,10 +12,9 @@ export default class Ghost extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
 
     // --- defensive global cap (counts existing ghosts BEFORE adding this one) ---
-    const ghostCount =
-      (scene.enemies?.getChildren?.() || []).filter(
-        (e) => e?.constructor?.TYPE === "ghost" && e.active
-      ).length;
+    const ghostCount = (scene.enemies?.getChildren?.() || []).filter(
+      (e) => e?.constructor?.TYPE === "ghost" && e.active
+    ).length;
     if (ghostCount >= 2) {
       this.destroy();
       return;
@@ -30,11 +29,11 @@ export default class Ghost extends Phaser.Physics.Arcade.Sprite {
     this.setVisible(true);
 
     // 3) movement + range gate
-    this.speed = 45;              // try 60–80 later if you want them scarier
+    this.speed = 45; // try 60–80 later if you want them scarier
     this.freezeEpsilon = 4;
-    this.maxPlatformGapToChase = 5;   // only chase if ≤ 5 platforms apart
+    this.maxPlatformGapToChase = 5; // only chase if ≤ 5 platforms apart
     this._withinRange = true;
-    this._rangeCheckCooldownMs = 0;   // updated ~every 200ms
+    this._rangeCheckCooldownMs = 0; // updated ~every 200ms
 
     // 4) ensure (global) float animation exists, then play it
     this._ensureFloatAnim(scene);
@@ -62,8 +61,8 @@ export default class Ghost extends Phaser.Physics.Arcade.Sprite {
   _playerIsFacingMe(player) {
     if (!player?.active) return false;
     const dx = this.x - player.x;
-    if (player.flipX && dx < -this.freezeEpsilon) return true;  // facing left, ghost left
-    if (!player.flipX && dx > this.freezeEpsilon) return true;  // facing right, ghost right
+    if (player.flipX && dx < -this.freezeEpsilon) return true; // facing left, ghost left
+    if (!player.flipX && dx > this.freezeEpsilon) return true; // facing right, ghost right
     return false;
   }
 
@@ -115,7 +114,31 @@ export default class Ghost extends Phaser.Physics.Arcade.Sprite {
   }
 
   onPlayerCollide(player) {
-    if (player?._springActive) return; // allow spring-invuln if you want
-    player?.die?.();
+    if (player._springActive || player._invuln) {
+      console.log("spring invuln");
+      return; // allow spring-invuln if you want
+    } else {
+      console.log("hit");
+    }
+    player.takeDamage();
+    this.die(player);
+  }
+  die(player) {
+    console.log(this, this.x, this.y);
+    player.debrisEmitter.emitParticleAt(this.x, this.y, 25);
+    this.destroy();
+  }
+  createParticleEmitters() {
+    this.debrisEmitter = this.scene.add.particles(0, 0, "small_debris", {
+      speed: { min: -40, max: 40 },
+      lifespan: { min: 150, max: 300 },
+      gravityY: 0,
+      // 🔑 scale up
+      scale: { start: 2.5, end: 0 },
+      alpha: { start: 1, end: 0 },
+      quantity: 4,
+      emitting: false,
+    });
+    this.debrisEmitter.setDepth(999);
   }
 }

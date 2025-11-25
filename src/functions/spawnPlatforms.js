@@ -253,12 +253,12 @@ if (!grounded) {
     const fallingOrRest = b.velocity.y >= 0;
 
     if (!grounded) scene._hasLeftGround = true;
-    if (grounded && !scene._prevGrounded) {
+    if (grounded && !scene._prevGrounded && scene._pendingLandedPlatform) {
       console.log(player.x, player.y);
       // player.crumbleEmitter.explode(player.x,player.y);
       player.debrisEmitter.emitParticleAt(
         player.x,
-        player.y + player.displayHeight - 8,
+        scene._pendingLandedPlatform.y - 10,
         15
       );
     }

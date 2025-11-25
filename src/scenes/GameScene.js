@@ -25,22 +25,16 @@ export default class GameScene extends Phaser.Scene {
     this.events.once("shutdown", () => {
       this.resetGame();
     });
-
-    console.log(this.sound.locked); // true means audio is waiting for unlock
     this.cameras.main.roundPixels = true;
-
     //start background music
     this.bgm = this.sound.add("bgm", {
       loop: true,
       volume: 0.5, // adjust to your liking
     });
-
     this.bgm.play();
-    console.log(this.sound.locked); // true means audio is waiting for unlock
-
     const gameWidth = this.sys.game.config.width;
     const gameHeight = this.sys.game.config.height;
-    new MuteButton(this, 20, gameHeight - 20);
+    new MuteButton(this, 0, 0 );
     const isMobile =
       this.sys.game.device.os.android || this.sys.game.device.os.iOS;
     if (isMobile) {
@@ -49,18 +43,19 @@ export default class GameScene extends Phaser.Scene {
     this.score = 0;
 
     this.scoreText = this.add
-      .text(10, 10, "Score: 0", {
+      .text(200, 10, "Score: 0", {
         fontSize: "24px",
-        fill: "#5049abff",
+        fill: "#FFFFFF",
+        fontFamily: "NormalSans",
+
       })
-      .setScrollFactor(0);
+      .setScrollFactor(0).setDepth(100);
 
     this.player = new Player(this, gameWidth / 2, gameHeight * 0.75);
 
     this.cursors = this.input.keyboard.addKeys("W,A,S,D");
     this.enemies = this.physics.add.group();
     this.enemies = this.physics.add.group({ runChildUpdate: true });
-
 
     // REPLACE the enemy collider so there is only ONE binding and ONE handler
     if (this.playerEnemyCollider) this.playerEnemyCollider.destroy();
@@ -94,48 +89,53 @@ export default class GameScene extends Phaser.Scene {
     this.mapData = createMap(this, this.player);
     initializePlatforms(this, this.player);
     setupCoins(this);
-    setupDeathBar(this, { offset: 40, barHeight: 20});
+    setupDeathBar(this, { offset: 40, barHeight: 20 });
     this.enemiesPlatformsCollider = this.physics.add.collider(
-  this.enemies,
-  this.platforms,
-  null,
-  (enemy /*, platform */) => {
-    return enemy?.constructor?.TYPE !== "ghost"; // block everyone except ghosts
-  },
-  this
-);
-
-// Create enemies group if you don't already:
-this.enemies = this.enemies || this.physics.add.group({ runChildUpdate: true });
-
-// Simple free-roaming ghost spawner
-this.time.addEvent({
-  delay: 1200,
-  loop: true,
-  callback: () => {
-    // Cap visible ghosts
-    const visibleGhosts = this.enemies.getChildren().filter(
-      e => e?.constructor?.TYPE === "ghost" && e.active
+      this.enemies,
+      this.platforms,
+      null,
+      (enemy /*, platform */) => {
+        return enemy?.constructor?.TYPE !== "ghost"; // block everyone except ghosts
+      },
+      this
     );
-    if (visibleGhosts.length >= 1) return;
 
-    // Spawn just above the camera, somewhat random X
-    const cam = this.cameras.main;
-    const w = this.scale.width;
-    const x = Phaser.Math.Between(24, w - 24);
-    const y = cam.worldView.y - Phaser.Math.Between(80, 160);
+    // Create enemies group if you don't already:
+    this.enemies =
+      this.enemies || this.physics.add.group({ runChildUpdate: true });
 
-    // Avoid spawning inside a platform
-    if (this._positionIsInsidePlatform(x, y)) return;
+    // Simple free-roaming ghost spawner
+    this.time.addEvent({
+      delay: 1200,
+      loop: true,
+      callback: () => {
+        // Cap visible ghosts
+        const visibleGhosts = this.enemies
+          .getChildren()
+          .filter((e) => e?.constructor?.TYPE === "ghost" && e.active);
+        if (visibleGhosts.length >= 1) return;
 
-    // Don’t pop directly on top of player
-    if (Math.abs(this.player.x - x) < 16 && Math.abs(this.player.y - y) < 16) return;
+        // Spawn just above the camera, somewhat random X
+        const cam = this.cameras.main;
+        const w = this.scale.width;
+        const x = Phaser.Math.Between(24, w - 24);
+        const y = cam.worldView.y - Phaser.Math.Between(80, 160);
 
-    // Create and add to the enemies group
-    const g = new Ghost(this, x, y);
-    this.enemies.add(g);
-  },
-});
+        // Avoid spawning inside a platform
+        if (this._positionIsInsidePlatform(x, y)) return;
+
+        // Don’t pop directly on top of player
+        if (
+          Math.abs(this.player.x - x) < 16 &&
+          Math.abs(this.player.y - y) < 16
+        )
+          return;
+
+        // Create and add to the enemies group
+        const g = new Ghost(this, x, y);
+        this.enemies.add(g);
+      },
+    });
 
     this.upgrades = new UpgradeManager(this, this.player, this.platforms);
   }
@@ -153,22 +153,26 @@ this.time.addEvent({
       this.minScrollY = target;
     }
     this.cameras.main.scrollY = this.minScrollY; // never increases
-  updateCoins(this, this.time.now);
+    updateCoins(this, this.time.now);
     updateDeathBar(this);
   }
-    _positionIsInsidePlatform(x, y) {
-  let inside = false;
-  this.platforms.getChildren().forEach(p => {
-    if (!p?.active) return;
-    const halfW = (p.displayWidth ?? p.body?.width ?? 0) / 2;
-    const halfH = (p.displayHeight ?? p.body?.height ?? 0) / 2;
-    if (x >= p.x - halfW - 2 && x <= p.x + halfW + 2 &&
-        y >= p.y - halfH - 2 && y <= p.y + halfH + 2) {
-      inside = true;
-    }
-  });
-  return inside;
-}
+  _positionIsInsidePlatform(x, y) {
+    let inside = false;
+    this.platforms.getChildren().forEach((p) => {
+      if (!p?.active) return;
+      const halfW = (p.displayWidth ?? p.body?.width ?? 0) / 2;
+      const halfH = (p.displayHeight ?? p.body?.height ?? 0) / 2;
+      if (
+        x >= p.x - halfW - 2 &&
+        x <= p.x + halfW + 2 &&
+        y >= p.y - halfH - 2 &&
+        y <= p.y + halfH + 2
+      ) {
+        inside = true;
+      }
+    });
+    return inside;
+  }
 
   gameOver() {
     this.scene.stop("GameScene");
@@ -200,27 +204,9 @@ this.time.addEvent({
     this.leftButton.on("pointerup", () => (this.controls.left = false));
     this.leftButton.on("pointerout", () => (this.controls.left = false));
 
-    // RIGHT button
-    this.rightButton = this.add
-      .image(200, height - 80, "arrow_button")
-      .setInteractive()
-      .setScrollFactor(0)
-      .setScale(1.5)
-      .setPipeline("TextureTintPipeline")
-      .setRotation(Math.PI / 2)
-      .setDepth(9999)
-      .setAlpha(0.5);
-    this.rightButton.on("pointerdown", () => (this.controls.right = true));
-    this.rightButton.on("pointerup", () => (this.controls.right = false));
-    this.rightButton.on("pointerout", () => (this.controls.right = false));
-
     // JUMP button
     this.jumpButton = this.add
-      .image(
-        this.rightButton.x + this.rightButton.width + 50,
-        height - 80,
-        "arrow_button"
-      )
+      .image(200, height - 80, "arrow_button")
       .setInteractive()
       .setScrollFactor(0)
       .setDepth(9999)
@@ -231,7 +217,25 @@ this.time.addEvent({
       .on("pointerout", () => (this.controls.up = false))
       .setScale(1.5)
       .setPipeline("TextureTintPipeline");
-  } 
+
+    // RIGHT button
+    this.rightButton = this.add
+      .image(
+        this.jumpButton.x + this.jumpButton.width + 50,
+        height - 80,
+        "arrow_button"
+      )
+      .setInteractive()
+      .setScrollFactor(0)
+      .setScale(1.5)
+      .setPipeline("TextureTintPipeline")
+      .setRotation(Math.PI / 2)
+      .setDepth(9999)
+      .setAlpha(0.5);
+    this.rightButton.on("pointerdown", () => (this.controls.right = true));
+    this.rightButton.on("pointerup", () => (this.controls.right = false));
+    this.rightButton.on("pointerout", () => (this.controls.right = false));
+  }
   resetGame() {
     // Defensive destroy: no `.clear()` because physics may be gone
     if (this.platforms) {
