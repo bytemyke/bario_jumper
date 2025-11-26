@@ -12,14 +12,14 @@ export default class InstructionsScene extends Phaser.Scene {
 
     this.add
       .text(width / 2, 80, "How to Play", {
-        fontSize: "28px",
+        fontSize: "60px",
         color: "#ffffff",
-        fontFamily: "NormalSans",
+        fontFamily: "Monogram",
       })
       .setOrigin(0.5);
 
     const instructionLines = [
-      "WASD (PC) \n BUTTONS (Mobile):",
+      "- Move WASD (PC) BUTTONS (Mobile):",
       "- Collect coins to increase your score",
       "- Avoid enemies and falling off platforms",
       "- Springs launch you higher",
@@ -28,19 +28,19 @@ export default class InstructionsScene extends Phaser.Scene {
 
     this.add
       .text(width / 2, height / 2, instructionLines.join("\n"), {
-        fontSize: "13px",
+        fontSize: "20px",
         color: "#ffffff",
-        fontFamily: "NormalSans",
-        align: "center",
+        fontFamily: "Monogram",
+        align: "left",
         lineSpacing: 8,
       })
       .setOrigin(0.5);
 
     this.add
       .text(width / 2, height - 80, "ESC or click to return", {
-        fontSize: "18px",
+        fontSize: "22px",
         color: "#ffffff",
-        fontFamily: "NormalSans",
+        fontFamily: "Monogram",
       })
       .setOrigin(0.5);
       

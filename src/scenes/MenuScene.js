@@ -37,10 +37,12 @@ export default class MenuScene extends Phaser.Scene {
     const sectionSpacing = 24;
 
     const title = this.add
-      .text(width / 2, sectionSpacing, "Bario Jumper", {
-        fontSize: "40px",
+      .text(width / 2, sectionSpacing * 3, "Bario Jumper", {
+        fontSize: "80px",
         color: "#ffffff",
-        fontFamily: "NormalSans",
+        fontFamily: "Monogram",
+        fontStyle: "bold",
+        align: "center",
       })
       .setOrigin(0.5, 0)
       .setDepth(1);
@@ -55,9 +57,10 @@ export default class MenuScene extends Phaser.Scene {
 
     const startText = this.add
       .text(width / 2, title.getBounds().bottom + sectionSpacing, "Start", {
-        fontSize: "32px",
+        fontSize: "60px",
         color: "#ffffff",
-        fontFamily: "NormalSans",
+        fontFamily: "Monogram",
+        align: "center",
       })
       .setOrigin(0.5, 0)
       .setInteractive({ useHandCursor: true })
@@ -69,9 +72,10 @@ export default class MenuScene extends Phaser.Scene {
         startText.getBounds().bottom + sectionSpacing,
         "Instructions",
         {
-          fontSize: "24px",
+          fontSize: "50px",
           color: "#ffffff",
-          fontFamily: "NormalSans",
+          fontFamily: "Monogram",
+          align: "center",
         }
       )
       .setOrigin(0.5, 0)

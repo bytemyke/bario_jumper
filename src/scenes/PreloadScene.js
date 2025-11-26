@@ -64,6 +64,8 @@ export default class PreloadScene extends Phaser.Scene {
   }
   loadFonts() {
     this.load.font("NormalSans", "cco/fonts/NormalSans--Timconceivable.ttf", 'truetype');
+    this.load.font("Monogram", "cco/fonts/monogram.ttf", 'truetype');
+
   }
   loadPlatforms() {
     const seen = new Set();
@@ -177,6 +179,7 @@ export default class PreloadScene extends Phaser.Scene {
   }
   create() {
     // this.scene.start("GameScene");
-    this.scene.start("MenuScene")
+    this.scene.start("GameOverScene", { score: 2000 });
+    // this.scene.start("MenuScene")
   }
 }
