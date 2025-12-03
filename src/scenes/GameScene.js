@@ -105,7 +105,6 @@ export default class GameScene extends Phaser.Scene {
       this.enemies || this.physics.add.group({ runChildUpdate: true });
 
     // Simple free-roaming ghost spawner
-    // Simple free-roaming ghost spawner
 this.time.addEvent({
   delay: 1200,
   loop: true,
@@ -115,7 +114,7 @@ this.time.addEvent({
     const t = difficultyT(score); 
 
     // 2) Max ghosts based on difficulty:
-    const maxGhosts = t >= 0.65 ? 2 : 1;
+    const maxGhosts = t >= 0.6 ? 2 : 1;
 
     // 3) Count active ghosts in the enemies group
     const activeGhosts = this.enemies

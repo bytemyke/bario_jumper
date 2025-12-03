@@ -30,8 +30,8 @@ const MAX_TRIES = 40;
 /* ---------------- Spacing rules (no blocking / no pinches) ---------------- */
 
 // Difficulty curve (score -> weights)
-const STEP_SIZE = 200;   // points per step
-const STEP_GAIN = 0.15;  // 15% per step (0.15)
+const STEP_SIZE = 400;   // points per step
+const STEP_GAIN = 0.1;  // 15% per step (0.15)
 const MAX_T     = 1.0;   // cap
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
@@ -794,8 +794,9 @@ function placeOptionalOnSide(
 
   if (opts.offscreenY != null && !(proposedY <= opts.offscreenY)) return false;
 
+  const { maxH } = getMaxPlayerDims(scene);
   const minUpClearUpper =
-    OPTIONAL_MIN_UP_CLEAR_PLAYER_MULT * getPlayerHeight(player);
+    OPTIONAL_MIN_UP_CLEAR_PLAYER_MULT * maxH;
   const upClearUpper = proposedY - upper.y;
   if (upClearUpper < minUpClearUpper) return false;
 
@@ -835,7 +836,7 @@ function placeOptionalOnSide(
     const nearestAbove = getNearestPlatformAbove(scene, proposedY);
     if (nearestAbove) {
       const minUpClearAny =
-        OPTIONAL_MIN_UP_CLEAR_ANY_MULT * getPlayerHeight(player);
+        OPTIONAL_MIN_UP_CLEAR_ANY_MULT * maxH;
       const upClearAny = proposedY - nearestAbove.y;
       if (upClearAny < minUpClearAny) continue;
     }
@@ -979,9 +980,10 @@ function placeAt(scene, platform, x, y, player, h, reach) {
  *  - Uses `.blocks` metadata when available; otherwise falls back to pixel widths.
  */
 function canPlaceWithSpacing(scene, x, y, platform, player, relax = 1.0) {
+  const { maxH } = getMaxPlayerDims(scene);
   const minYGap = Math.max(
     1,
-    V_SPACING_PLAYER_MULT * relax * getPlayerHeight(player)
+    V_SPACING_PLAYER_MULT * relax * maxH
   );
   const widthSelf = getPlatformWidth(platform);
   const blocksSelf = platform?.blocks ?? null;
