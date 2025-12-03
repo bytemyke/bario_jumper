@@ -7,18 +7,18 @@ import SmallShell from "../sprites/enemies/SmallShell";
 
 /* --- Difficulty (step ramp) --- */
 // min: +15% every 200 score
-const STEP_SIZE = 200;
-const STEP_GAIN = 0.15;
+const STEP_SIZE = 450;
+const STEP_GAIN = 0.125;
 const MAX_T = 1.0;
-function difficultyT(score) {
+export function difficultyT(score) {
   const steps = Math.floor(Math.max(0, score) / STEP_SIZE);
   return Math.min(MAX_T, steps * STEP_GAIN);
 }
 
 /* --- Spawn-rate curve --- */
 // min: map t∈[0..1] to chance ∈ [10%..85%]
-const BASE_CHANCE = 0.10;
-const MAX_CHANCE = 0.85;
+const BASE_CHANCE = 0.08;
+const MAX_CHANCE = 0.725;
 function enemySpawnChance(score) {
   const t = difficultyT(score);
   return Phaser.Math.Clamp(BASE_CHANCE + (MAX_CHANCE - BASE_CHANCE) * t, 0, 1);
