@@ -160,7 +160,7 @@ export default class PreloadScene extends Phaser.Scene {
   loadPlatforms() {
     PLATFORM_TYPES.forEach((p) => {
       let key = p.type + "_" + p.blocks;
-      this.load.image(key, "/cartoon/platforms/" + key + ".png");
+      this.load.image(key, "cartoon/platforms/" + key + ".png");
     });
   }
 
@@ -176,10 +176,12 @@ export default class PreloadScene extends Phaser.Scene {
     );
     this.load.image("music_on", "cco/controls/music_on.png");
     this.load.image("music_off", "cco/controls/music_off.png");
+    this.load.image("idle_button", "cco/buttons/idle.png");
+    this.load.image("click_button", "cco/buttons/click.png");
   }
   create() {
-    // this.scene.start("GameScene");
-    this.scene.start("GameOverScene", { score: 2000 });
+    //this.scene.start("GameScene");
+     this.scene.start("GameOverScene", { score: 2000 });
     // this.scene.start("MenuScene")
   }
 }

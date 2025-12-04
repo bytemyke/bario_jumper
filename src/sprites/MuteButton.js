@@ -28,10 +28,10 @@ export default class MuteButton extends Phaser.GameObjects.Image {
 
     // your original button placement (unchanged)
     scene.muteButton = scene.add
-      .image(15, 15, scene.isMuted ? "music_off" : "music_on") // respects saved state
+      .image(18, 16, scene.isMuted ? "music_off" : "music_on") // respects saved state
       .setScrollFactor(0)
       .setInteractive()
-      .setScale(2).setDepth(9999); // scale up if pixel art
+      .setScale(1).setDepth(9999); // scale up if pixel art
 
     // handle click
     scene.muteButton.on("pointerdown", () => {

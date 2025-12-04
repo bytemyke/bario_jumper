@@ -14,7 +14,7 @@ export default class GameOverScene extends Phaser.Scene {
 
     // GAME OVER typing effect
     this.gameOverText = this.add
-      .text(width / 2, height / 2 - 120, "", {
+      .text(width / 2, 50, "", {
         fontSize: "48px",
         color: "#ff0000",
         fontStyle: "bold",
@@ -35,7 +35,7 @@ export default class GameOverScene extends Phaser.Scene {
 
     // Score text (flashing)
     this.scoreText = this.add
-      .text(width / 2, height / 2 - 40, `Score: ${this.finalScore}`, {
+      .text(width / 2, 150, `Score: ${this.finalScore}`, {
         fontSize: "36px",
         color: "#87CEFA",
         fontStyle: "bold",
@@ -54,23 +54,24 @@ export default class GameOverScene extends Phaser.Scene {
 
     // --- BUTTON CREATOR ---
     const makeButton = (y, label, callback, color = "#ffffff") => {
-      const b = this.add
+      const button = this.add.image(width / 2, y, "idle_button").setOrigin(0.5).setScale(1);
+      const text = this.add
         .text(width / 2, y, label, {
           fontSize: "24px",
           color,
           fontFamily: "Monogram",
-          backgroundColor: "#333",
+          // backgroundColor: "#333",
           padding: { left: 16, right: 16, top: 10, bottom: 10 },
         })
         .setOrigin(0.5)
         .setInteractive({ useHandCursor: true });
 
-      b.on("pointerdown", callback);
-      return b;
+      button.on("pointerdown", callback);
+      return button;
     };
 
     // 🎮 Try Again
-    makeButton(height / 2 + 40, "Try Again", () => {
+    makeButton(height / 2 , "Try Again", () => {
       if (this.scene.isActive("GameScene")) {
         this.scene.stop("GameScene");
       }
@@ -79,7 +80,7 @@ export default class GameOverScene extends Phaser.Scene {
 
     // 🐦 Share on Twitter (text only)
     makeButton(
-      height / 2 + 100,
+      height / 2 + 120,
       "Share on Twitter",
       () => {
         const text = encodeURIComponent(
@@ -93,7 +94,7 @@ export default class GameOverScene extends Phaser.Scene {
 
     // 🌐 Share on Farcaster (text only)
     makeButton(
-      height / 2 + 160,
+      height / 2 + 350 -60,
       "Share on Farcaster",
       () => {
         const text = encodeURIComponent(
@@ -106,7 +107,7 @@ export default class GameOverScene extends Phaser.Scene {
     );
 
     // 📸 Save High Score Image
-    makeButton(height / 2 + 220, "Save High Score IMG", () => {
+    makeButton(height / 2 + 500 -90, "Save High Score IMG", () => {
       this.saveHighScoreImage();
     });
   }
