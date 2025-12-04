@@ -52,6 +52,7 @@ export default class GameScene extends Phaser.Scene {
       .setScrollFactor(0).setDepth(100);
 
     this.player = new Player(this, gameWidth / 2, gameHeight * 0.75);
+    
 
     this.cursors = this.input.keyboard.addKeys("W,A,S,D");
     this.enemies = this.physics.add.group();

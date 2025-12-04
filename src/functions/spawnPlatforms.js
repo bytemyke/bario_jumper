@@ -27,6 +27,9 @@ const X_PADDING = 40;
 // Attempts when sampling a valid position
 const MAX_TRIES = 40;
 
+const BIG_BARIO_HEIGHT = 32; // collider height for big
+const BIG_BARIO_WIDTH  = 18; // collider width for big
+
 /* ---------------- Spacing rules (no blocking / no pinches) ---------------- */
 
 // Difficulty curve (score -> weights)
@@ -110,7 +113,7 @@ function pickPlatformKeyForScore(scene) {
 
 const H_SPACING_MULT = 1.2;
 
-// ⬇️ Doubled so Big Bario (2× tall) has safe clearance when platforms stack vertically
+// Doubled so Big Bario (2× tall) has safe clearance when platforms stack vertically
 const V_SPACING_PLAYER_MULT = 4.8;
 
 // Extra horizontal offset when a narrow sits below a much wider one
@@ -127,16 +130,12 @@ const PINCH_Y_CUTOFF = 1.35; // only apply pinch check when platforms are this c
 
 // Return *max so far* player body dims, robust to mini/big swaps at runtime
 function getMaxPlayerDims(scene) {
-  const p = scene.player;
-  // runtime body is best truth
-  const bh = p?.body?.height ?? 33; // fallback to big frame
-  const bw = p?.body?.width ?? 18;
-  // keep a rolling max so we’re always safe for both forms
-  const maxH = Math.max(bh, p?.getData("maxH") ?? 0, 33);
-  const maxW = Math.max(bw, p?.getData("maxW") ?? 0, 18);
-  p?.setData("maxH", maxH);
-  p?.setData("maxW", maxW);
-  return { maxH, maxW };
+  // Always behave as if the player were Big Bario,
+  // even if they're currently in mini form.
+  return {
+    maxH: BIG_BARIO_HEIGHT,
+    maxW: BIG_BARIO_WIDTH,
+  };
 }
 
 // Rejects candidate if it would create a pinch for Big Bario given nearby core platforms
@@ -980,10 +979,10 @@ function placeAt(scene, platform, x, y, player, h, reach) {
  *  - Uses `.blocks` metadata when available; otherwise falls back to pixel widths.
  */
 function canPlaceWithSpacing(scene, x, y, platform, player, relax = 1.0) {
-  const { maxH } = getMaxPlayerDims(scene);
+  
   const minYGap = Math.max(
     1,
-    V_SPACING_PLAYER_MULT * relax * maxH
+    V_SPACING_PLAYER_MULT * relax * getPlayerHeight(player)
   );
   const widthSelf = getPlatformWidth(platform);
   const blocksSelf = platform?.blocks ?? null;

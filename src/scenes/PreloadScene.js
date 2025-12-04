@@ -90,9 +90,9 @@ export default class PreloadScene extends Phaser.Scene {
       "stump_brown",
       "cartoon/sprites/enemies/stump_brown.png",
       {
-        frameWidth: 17,
+        frameWidth: 18,
         frameHeight: 16,
-        spacing: 2,
+        spacing: 0,
       }
     );
     this.load.spritesheet(
