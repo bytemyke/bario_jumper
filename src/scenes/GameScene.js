@@ -13,6 +13,7 @@ import UpgradeManager from "../classes/UpgradeManager";
 import MuteButton from "../sprites/MuteButton";
 import { setupCoins, updateCoins } from "../functions/coins";
 import { setupDeathBar, updateDeathBar } from "../functions/deathBar";
+import { maybeAttachEnemy, difficultyT } from "../functions/spawnEnemies";
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
@@ -104,39 +105,46 @@ export default class GameScene extends Phaser.Scene {
       this.enemies || this.physics.add.group({ runChildUpdate: true });
 
     // Simple free-roaming ghost spawner
-    this.time.addEvent({
-      delay: 1200,
-      loop: true,
-      callback: () => {
-        // Cap visible ghosts
-        const visibleGhosts = this.enemies
-          .getChildren()
-          .filter((e) => e?.constructor?.TYPE === "ghost" && e.active);
-        if (visibleGhosts.length >= 1) return;
+this.time.addEvent({
+  delay: 1200,
+  loop: true,
+  callback: () => {
+    // 1) establish difficulty t
+    const score = this.score ?? 0;
+    const t = difficultyT(score); 
 
-        // Spawn just above the camera, somewhat random X
-        const cam = this.cameras.main;
-        const w = this.scale.width;
-        const x = Phaser.Math.Between(24, w - 24);
-        const y = cam.worldView.y - Phaser.Math.Between(80, 160);
+    // 2) Max ghosts based on difficulty:
+    const maxGhosts = t >= 0.6 ? 2 : 1;
 
-        // Avoid spawning inside a platform
-        if (this._positionIsInsidePlatform(x, y)) return;
+    // 3) Count active ghosts in the enemies group
+    const activeGhosts = this.enemies
+      .getChildren()
+      .filter((e) => e?.constructor?.TYPE === "ghost" && e.active);
 
-        // Don’t pop directly on top of player
-        if (
-          Math.abs(this.player.x - x) < 16 &&
-          Math.abs(this.player.y - y) < 16
-        )
-          return;
+    if (activeGhosts.length >= maxGhosts) return;
 
-        // Create and add to the enemies group
-        const g = new Ghost(this, x, y);
-        this.enemies.add(g);
-      },
-    });
+    // 4) Spawn just above the camera, somewhat random X
+    const cam = this.cameras.main;
+    const w = this.scale.width;
+    const x = Phaser.Math.Between(24, w - 24);
+    const y = cam.worldView.y - Phaser.Math.Between(80, 160);
 
-    this.upgrades = new UpgradeManager(this, this.player, this.platforms);
+    if (this._positionIsInsidePlatform(x, y)) return;
+
+    if (
+      Math.abs(this.player.x - x) < 16 &&
+      Math.abs(this.player.y - y) < 16
+    )
+      return;
+
+    // 5) Create and add to the enemies group
+    const g = new Ghost(this, x, y);
+    this.enemies.add(g);
+  },
+});
+
+this.upgrades = new UpgradeManager(this, this.player, this.platforms);
+
   }
   update() {
     this.scoreText.setText(`Score: ${this.score}`);
