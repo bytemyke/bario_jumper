@@ -200,30 +200,30 @@ this.upgrades = new UpgradeManager(this, this.player, this.platforms);
 
     // LEFT button
     this.leftButton = this.add
-      .image(80, height - 80, "arrow_button")
+      .image(70, height - 78, "arrow_button")
       .setInteractive()
       .setScrollFactor(0)
-      .setScale(1.5)
+      .setScale(2)
       .setPipeline("TextureTintPipeline")
       .setRotation(Math.PI / -2)
       .setDepth(9999)
-      .setAlpha(0.5);
-    this.leftButton.on("pointerdown", () => (this.controls.left = true));
-    this.leftButton.on("pointerup", () => (this.controls.left = false));
-    this.leftButton.on("pointerout", () => (this.controls.left = false));
+      .setAlpha(0.25);
+    this.leftButton.on("pointerdown", () => {this.controls.left = true; this.leftButton.setTexture("arrow_button_pressed");});
+    this.leftButton.on("pointerup", () => {this.controls.left = false; this.leftButton.setTexture("arrow_button");});
+    this.leftButton.on("pointerout", () => {this.controls.left = false; this.leftButton.setTexture("arrow_button");});
 
     // JUMP button
     this.jumpButton = this.add
-      .image(200, height - 80, "arrow_button")
+      .image(180, height - 100, "arrow_button")
       .setInteractive()
       .setScrollFactor(0)
       .setDepth(9999)
-      .setAlpha(0.5);
-    this.jumpButton.on("pointerdown", () => (this.controls.up = true));
-    this.jumpButton.on("pointerup", () => (this.controls.up = false));
+      .setAlpha(0.25);
+    this.jumpButton.on("pointerdown", () => {this.controls.up = true; this.jumpButton.setTexture("arrow_button_pressed");})
+    this.jumpButton.on("pointerup", () => {this.controls.up = false; this.jumpButton.setTexture("arrow_button");});
     this.jumpButton
-      .on("pointerout", () => (this.controls.up = false))
-      .setScale(1.5)
+      .on("pointerout", () => {this.controls.up = false; this.jumpButton.setTexture("arrow_button");})
+      .setScale(2)
       .setPipeline("TextureTintPipeline");
 
     // RIGHT button
@@ -235,14 +235,14 @@ this.upgrades = new UpgradeManager(this, this.player, this.platforms);
       )
       .setInteractive()
       .setScrollFactor(0)
-      .setScale(1.5)
+      .setScale(2)
       .setPipeline("TextureTintPipeline")
       .setRotation(Math.PI / 2)
       .setDepth(9999)
-      .setAlpha(0.5);
-    this.rightButton.on("pointerdown", () => (this.controls.right = true));
-    this.rightButton.on("pointerup", () => (this.controls.right = false));
-    this.rightButton.on("pointerout", () => (this.controls.right = false));
+      .setAlpha(0.25);
+    this.rightButton.on("pointerdown", () => {this.controls.right = true; this.rightButton.setTexture("arrow_button_pressed");})
+    this.rightButton.on("pointerup", () => {this.controls.right = false; this.rightButton.setTexture("arrow_button");});
+    this.rightButton.on("pointerout", () => {this.controls.right = false; this.rightButton.setTexture("arrow_button");});
   }
   resetGame() {
     // Defensive destroy: no `.clear()` because physics may be gone

@@ -15,7 +15,7 @@ export default class GameOverScene extends Phaser.Scene {
     // GAME OVER typing effect
     this.gameOverText = this.add
       .text(width / 2, 50, "", {
-        fontSize: "48px",
+        fontSize: "90px",
         color: "#ff0000",
         fontStyle: "bold",
         fontFamily: "Monogram",
@@ -35,9 +35,9 @@ export default class GameOverScene extends Phaser.Scene {
 
     // Score text (flashing)
     this.scoreText = this.add
-      .text(width / 2, 150, `Score: ${this.finalScore}`, {
-        fontSize: "36px",
-        color: "#87CEFA",
+      .text(width / 2, 160, `Score: ${this.finalScore}`, {
+        fontSize: "70px",
+        color: "#ffffffff",
         fontStyle: "bold",
         fontFamily: "Monogram",
       })
@@ -54,24 +54,34 @@ export default class GameOverScene extends Phaser.Scene {
 
     // --- BUTTON CREATOR ---
     const makeButton = (y, label, callback, color = "#ffffff") => {
-      const button = this.add.image(width / 2, y, "idle_button").setOrigin(0.5).setScale(1);
+      const button = this.add
+        .image(width / 2, y, "idle_button")
+        .setOrigin(0.5)
+        .setScale(1)
+        .setInteractive({ useHandCursor: true });
       const text = this.add
-        .text(width / 2, y, label, {
-          fontSize: "24px",
+        .text(width / 2, y - 10, label, {
+          fontSize: "30px",
           color,
           fontFamily: "Monogram",
           // backgroundColor: "#333",
           padding: { left: 16, right: 16, top: 10, bottom: 10 },
         })
-        .setOrigin(0.5)
-        .setInteractive({ useHandCursor: true });
+        .setOrigin(0.5);
 
       button.on("pointerdown", callback);
+      button.on("pointerover", () => {
+        button.setTexture("click_button");
+      });
+
+      button.on("pointerout", () => {
+        button.setTexture("idle_button");
+      });
       return button;
     };
-
+    let startY = height / 2 - 30;
     // 🎮 Try Again
-    makeButton(height / 2 , "Try Again", () => {
+    makeButton(startY, "Play Again", () => {
       if (this.scene.isActive("GameScene")) {
         this.scene.stop("GameScene");
       }
@@ -80,7 +90,7 @@ export default class GameOverScene extends Phaser.Scene {
 
     // 🐦 Share on Twitter (text only)
     makeButton(
-      height / 2 + 120,
+      startY + 100,
       "Share on Twitter",
       () => {
         const text = encodeURIComponent(
@@ -89,12 +99,12 @@ export default class GameOverScene extends Phaser.Scene {
         const url = `https://twitter.com/intent/tweet?text=${text}`;
         window.open(url, "_blank");
       },
-      "#1DA1F2"
+      "#340ee1ff"
     );
 
     // 🌐 Share on Farcaster (text only)
     makeButton(
-      height / 2 + 350 -60,
+      startY + 200,
       "Share on Farcaster",
       () => {
         const text = encodeURIComponent(
@@ -103,11 +113,11 @@ export default class GameOverScene extends Phaser.Scene {
         const url = `https://warpcast.com/~/compose?text=${text}`;
         window.open(url, "_blank");
       },
-      "#8A2BE2"
+      "#7e02f3ff"
     );
 
     // 📸 Save High Score Image
-    makeButton(height / 2 + 500 -90, "Save High Score IMG", () => {
+    makeButton(startY + 300, "Save High Score IMG", () => {
       this.saveHighScoreImage();
     });
   }
@@ -115,23 +125,24 @@ export default class GameOverScene extends Phaser.Scene {
     // Stop flashing & ensure visibility
     this.scoreFlashTween.pause();
     this.scoreText.alpha = 1;
-
+    const text = this.scoreFlashTween;
     await new Promise((resolve) => setTimeout(resolve, 50)); // small delay in case frame needs update
 
     const canvas = this.sys.game.canvas;
 
-    canvas.toBlob((blob) => {
-      if (!blob) return;
+     this.game.renderer.snapshot(function (image) {
+      // 'image' is an HTMLImageElement containing the screenshot
+      // You can then process or save this image, for example:
+      // document.body.appendChild(image); // Append to the DOM for display
 
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "bario_jumper_high_score.png";
-      a.click();
-      URL.revokeObjectURL(url);
-
-      // Resume flashing
-      this.scoreFlashTween.resume();
-    }, "image/png");
+      // To download the image:
+      const link = document.createElement("a");
+      link.download = "bario_jumper_high_score.png";
+      link.href = image.src;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      text.resume();
+    });
   }
 }
