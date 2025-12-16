@@ -19,7 +19,7 @@ export default class InstructionsScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const instructionLines = [
-      "- Move WASD (PC) BUTTONS (Mobile):",
+      "- Move WASD (PC) BUTTONS (Mobile)",
       "- Collect coins to increase your score",
       "- Avoid enemies and falling off platforms",
       "- Springs launch you higher",
@@ -28,7 +28,7 @@ export default class InstructionsScene extends Phaser.Scene {
 
     this.add
       .text(width / 2, height / 2, instructionLines.join("\n"), {
-        fontSize: "20px",
+        fontSize: "22px",
         color: "#ffffff",
         fontFamily: "Monogram",
         align: "left",
